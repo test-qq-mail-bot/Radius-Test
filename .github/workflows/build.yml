@@ -33,11 +33,11 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       should_release: ${{ steps.decide.outputs.release }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -82,9 +82,9 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -116,7 +116,7 @@ jobs:
           ls -l out
 
       - name: 上传构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Radius-Test-${{ needs.prepare.outputs.version }}-${{ matrix.os }}
           path: out/*
@@ -128,10 +128,10 @@ jobs:
     if: needs.prepare.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: 下载全部平台产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           path: artifacts
           merge-multiple: true
@@ -140,7 +140,7 @@ jobs:
         run: ls -l artifacts
 
       - name: 创建 Release（tag 与名称均取程序版本号）
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare.outputs.version }}
           name: "Radius-Test ${{ needs.prepare.outputs.version }}"
