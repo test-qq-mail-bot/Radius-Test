@@ -98,7 +98,25 @@ jobs:
         run: pip install "pyinstaller==6.22.2"
 
       - name: 打包
-        run: python build.py
+        # 强制用 bash + UTF-8：Windows 默认 PowerShell 控制台非 UTF-8，
+        # 打印中文会触发 UnicodeEncodeError 使进程以 exit 1 失败（表现为“构建 windows-latest 退出码 1”）。
+        shell: bash
+        env:
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: "utf-8"
+        run: |
+          python build.py 2>&1 | tee "build-${{ matrix.os }}.log"
+          status=${PIPESTATUS[0]}
+          echo "build exit code: $status"
+          exit $status
+
+      - name: 上传失败日志（仅失败时）
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-log-${{ matrix.os }}
+          path: build-${{ matrix.os }}.log
+          if-no-files-found: warn
 
       - name: 整理产物
         shell: bash

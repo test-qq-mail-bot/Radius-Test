@@ -26,6 +26,14 @@ from pathlib import Path
 
 import PyInstaller.__main__
 
+# 兼容非 UTF-8 控制台（如 Windows PowerShell）：强制 stdout/stderr 为 UTF-8，
+# 避免打印中文时触发 UnicodeEncodeError 使进程以非零码退出（CI 中表现为 exit code 1）。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 # 本脚本位于仓库根目录（即“源代码”目录）
 SOURCE = Path(__file__).resolve().parent
 DIST = SOURCE / "dist"
