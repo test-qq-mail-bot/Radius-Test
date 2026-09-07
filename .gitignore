@@ -1,9 +1,9 @@
-# 运行时与打包产生的目录，一律不入库
-data/
-log/
-dist/
-.build/
-build/
+# 仅忽略仓库根目录下的运行/打包产物（前导 / 锚定到根，避免误伤 src/dictionary/data 等源码目录）
+/data/
+/log/
+/dist/
+/.build/
+/build/
 *.spec
 
 # Python 缓存

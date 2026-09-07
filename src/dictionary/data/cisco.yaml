@@ -1,0 +1,457 @@
+# Radius-Test 内置 Dictionary
+#
+# 模板：Cisco
+# 来源：FreeRADIUS dictionary.cisco + RADIUS属性.xlsx 表3
+#
+# 本文件由构建脚本生成，位于源代码内部，随程序一起分发。
+# 用户如需修改，请在 Web 的 Dictionary 页面使用「派生为自定义模板」。
+
+template: Cisco
+vendor: "Cisco"
+vendor_id: 9
+attributes:
+  - id: 1
+    name: "Cisco-avpair"
+    name_zh: "Cisco属性值对（Cisco-avpair）"
+    type: string
+    desc: "Cisco 属性值对（AVPair），以 key=value 形式携带厂商自定义参数，常用于 Shell 授权、IP 地址下发、ACL 下发等。"
+  - id: 2
+    name: "NAS-Port"
+    name_zh: "NAS端口（NAS-Port）"
+    type: string
+  - id: 3
+    name: "Fax-Account-Id-Origin"
+    name_zh: "传真账号标识来源（Fax-Account-Id-Origin）"
+    type: string
+  - id: 4
+    name: "Fax-Msg-Id"
+    name_zh: "传真消息ID（Fax-Msg-Id）"
+    type: string
+  - id: 5
+    name: "Fax-Pages"
+    name_zh: "传真页数（Fax-Pages）"
+    type: string
+  - id: 6
+    name: "Fax-Coverpage-Flag"
+    name_zh: "传真封面标志（Fax-Coverpage-Flag）"
+    type: string
+  - id: 7
+    name: "Fax-Modem-Time"
+    name_zh: "传真调制解调器时长（Fax-Modem-Time）"
+    type: string
+  - id: 8
+    name: "Fax-Connect-Speed"
+    name_zh: "传真连接速率（Fax-Connect-Speed）"
+    type: string
+  - id: 9
+    name: "Fax-Recipient-Count"
+    name_zh: "传真接收方数量（Fax-Recipient-Count）"
+    type: string
+  - id: 10
+    name: "Fax-Process-Abort-Flag"
+    name_zh: "传真处理中止标志（Fax-Process-Abort-Flag）"
+    type: string
+  - id: 11
+    name: "Fax-Dsn-Address"
+    name_zh: "传真DSN地址（Fax-Dsn-Address）"
+    type: string
+  - id: 12
+    name: "Fax-Dsn-Flag"
+    name_zh: "传真DSN标志（Fax-Dsn-Flag）"
+    type: string
+  - id: 13
+    name: "Fax-Mdn-Address"
+    name_zh: "传真MDN地址（Fax-Mdn-Address）"
+    type: string
+  - id: 14
+    name: "Fax-Mdn-Flag"
+    name_zh: "传真MDN标志（Fax-Mdn-Flag）"
+    type: string
+  - id: 15
+    name: "Fax-Auth-Status"
+    name_zh: "传真认证状态（Fax-Auth-Status）"
+    type: string
+  - id: 16
+    name: "Email-Server-Address"
+    name_zh: "邮件服务器地址（Email-Server-Address）"
+    type: string
+  - id: 17
+    name: "Email-Server-Ack-Flag"
+    name_zh: "邮件服务器确认标志（Email-Server-Ack-Flag）"
+    type: string
+  - id: 18
+    name: "Gateway-Id"
+    name_zh: "网关ID（Gateway-Id）"
+    type: string
+  - id: 19
+    name: "Call-Type"
+    name_zh: "呼叫类型（Call-Type）"
+    type: string
+  - id: 20
+    name: "Port-Used"
+    name_zh: "使用端口（Port-Used）"
+    type: string
+  - id: 21
+    name: "Abort-Cause"
+    name_zh: "中止原因（Abort-Cause）"
+    type: string
+  - id: 23
+    name: "h323-remote-address"
+    name_zh: "H323远端地址（h323-remote-address）"
+    type: string
+  - id: 24
+    name: "h323-conf-id"
+    name_zh: "H323会议ID（h323-conf-id）"
+    type: string
+  - id: 25
+    name: "h323-setup-time"
+    name_zh: "H323建立时间（h323-setup-time）"
+    type: string
+  - id: 26
+    name: "h323-call-origin"
+    name_zh: "H323呼叫源（h323-call-origin）"
+    type: string
+  - id: 27
+    name: "h323-call-type"
+    name_zh: "H323呼叫类型（h323-call-type）"
+    type: string
+  - id: 28
+    name: "h323-connect-time"
+    name_zh: "H323连接时间（h323-connect-time）"
+    type: string
+  - id: 29
+    name: "h323-disconnect-time"
+    name_zh: "H323断开时间（h323-disconnect-time）"
+    type: string
+  - id: 30
+    name: "h323-disconnect-cause"
+    name_zh: "H323断开原因（h323-disconnect-cause）"
+    type: string
+  - id: 31
+    name: "h323-voice-quality"
+    name_zh: "H323语音质量（h323-voice-quality）"
+    type: string
+  - id: 33
+    name: "h323-gw-id"
+    name_zh: "H323网关ID（h323-gw-id）"
+    type: string
+  - id: 35
+    name: "h323-incoming-conf-id"
+    name_zh: "H323入向会议ID（h323-incoming-conf-id）"
+    type: string
+  - id: 37
+    name: "Policy-Up"
+    name_zh: "策略上行（Policy-Up）"
+    type: string
+  - id: 38
+    name: "Policy-Down"
+    name_zh: "策略下行（Policy-Down）"
+    type: string
+  - id: 46
+    name: "Relay-Information-Option"
+    name_zh: "中继信息选项（Relay-Information-Option）"
+    type: string
+  - id: 47
+    name: "DHCP-User-Class"
+    name_zh: "DHCP用户类别（DHCP-User-Class）"
+    type: string
+  - id: 48
+    name: "DHCP-Vendor-Class"
+    name_zh: "DHCP厂商类别（DHCP-Vendor-Class）"
+    type: string
+  - id: 49
+    name: "DHCP-Client-Id"
+    name_zh: "DHCP客户端ID（DHCP-Client-Id）"
+    type: octets
+  - id: 50
+    name: "DHCP-Relay-GiAddr"
+    name_zh: "DHCP中继GiAddr（DHCP-Relay-GiAddr）"
+    type: string
+  - id: 51
+    name: "Service-Name"
+    name_zh: "服务名（Service-Name）"
+    type: string
+  - id: 52
+    name: "Parent-Session-Id"
+    name_zh: "父会话ID（Parent-Session-Id）"
+    type: string
+  - id: 55
+    name: "Sub-QoS-Pol-In"
+    name_zh: "用户QoS入向策略（Sub-QoS-Pol-In）"
+    type: string
+  - id: 56
+    name: "Sub-QoS-Pol-Out"
+    name_zh: "用户QoS出向策略（Sub-QoS-Pol-Out）"
+    type: string
+  - id: 57
+    name: "In-ACL"
+    name_zh: "入向ACL（In-ACL）"
+    type: string
+  - id: 58
+    name: "Out-ACL"
+    name_zh: "出向ACL（Out-ACL）"
+    type: string
+  - id: 59
+    name: "Sub-PBR-Policy-In"
+    name_zh: "用户PBR入向策略（Sub-PBR-Policy-In）"
+    type: string
+  - id: 60
+    name: "Sub-Activate-Service"
+    name_zh: "用户激活服务（Sub-Activate-Service）"
+    type: string
+  - id: 61
+    name: "IPv6-In-ACL"
+    name_zh: "IPv6入向ACL（IPv6-In-ACL）"
+    type: string
+  - id: 62
+    name: "IPv6-Out-ACL"
+    name_zh: "IPv6出向ACL（IPv6-Out-ACL）"
+    type: string
+  - id: 63
+    name: "Sub-Deactivate-Service"
+    name_zh: "用户停用服务（Sub-Deactivate-Service）"
+    type: string
+  - id: 65
+    name: "DHCP-Subscriber-Id"
+    name_zh: "DHCP用户标识（DHCP-Subscriber-Id）"
+    type: string
+  - id: 66
+    name: "DHCPv6-Link-Address"
+    name_zh: "DHCPv6链路地址（DHCPv6-Link-Address）"
+    type: string
+  - id: 90
+    name: "DHCPv4-Option-To-AAA"
+    name_zh: "DHCPv4选项至AAA（DHCPv4-Option-To-AAA）"
+    type: string
+  - id: 100
+    name: "sip-conf-id"
+    name_zh: "SIP会议ID（sip-conf-id）"
+    type: string
+  - id: 101
+    name: "h323-credit-amount"
+    name_zh: "H323信用额度（h323-credit-amount）"
+    type: string
+  - id: 102
+    name: "h323-credit-time"
+    name_zh: "H323信用时间（h323-credit-time）"
+    type: string
+  - id: 103
+    name: "h323-return-code"
+    name_zh: "H323返回码（h323-return-code）"
+    type: string
+  - id: 104
+    name: "h323-prompt-id"
+    name_zh: "H323提示ID（h323-prompt-id）"
+    type: string
+  - id: 105
+    name: "h323-time-and-day"
+    name_zh: "H323时间与日期（h323-time-and-day）"
+    type: string
+  - id: 106
+    name: "h323-redirect-number"
+    name_zh: "H323重定向号码（h323-redirect-number）"
+    type: string
+  - id: 107
+    name: "h323-preferred-lang"
+    name_zh: "H323偏好语言（h323-preferred-lang）"
+    type: string
+  - id: 108
+    name: "h323-redirect-ip-address"
+    name_zh: "H323重定向IP地址（h323-redirect-ip-address）"
+    type: string
+  - id: 109
+    name: "h323-billing-model"
+    name_zh: "H323计费模型（h323-billing-model）"
+    type: string
+  - id: 110
+    name: "h323-currency"
+    name_zh: "H323货币（h323-currency）"
+    type: string
+  - id: 111
+    name: "subscriber"
+    name_zh: "用户/订阅者（subscriber）"
+    type: string
+  - id: 112
+    name: "gw-rxd-cdn"
+    name_zh: "网关接收CDN（gw-rxd-cdn）"
+    type: string
+  - id: 113
+    name: "gw-final-xlated-cdn"
+    name_zh: "网关最终转换CDN（gw-final-xlated-cdn）"
+    type: string
+  - id: 114
+    name: "remote-media-address"
+    name_zh: "远端媒体地址（remote-media-address）"
+    type: string
+  - id: 115
+    name: "release-source"
+    name_zh: "释放来源（release-source）"
+    type: string
+  - id: 116
+    name: "gw-rxd-cgn"
+    name_zh: "网关接收CGN（gw-rxd-cgn）"
+    type: string
+  - id: 117
+    name: "gw-final-xlated-cgn"
+    name_zh: "网关最终转换CGN（gw-final-xlated-cgn）"
+    type: string
+  - id: 141
+    name: "call-id"
+    name_zh: "呼叫ID（call-id）"
+    type: string
+  - id: 142
+    name: "session-protocol"
+    name_zh: "会话协议（session-protocol）"
+    type: string
+  - id: 143
+    name: "method"
+    name_zh: "方法（method）"
+    type: string
+  - id: 144
+    name: "prev-hop-via"
+    name_zh: "上一跳Via（prev-hop-via）"
+    type: string
+  - id: 145
+    name: "prev-hop-ip"
+    name_zh: "上一跳IP（prev-hop-ip）"
+    type: string
+  - id: 146
+    name: "incoming-req-uri"
+    name_zh: "入向请求URI（incoming-req-uri）"
+    type: string
+  - id: 147
+    name: "outgoing-req-uri"
+    name_zh: "出向请求URI（outgoing-req-uri）"
+    type: string
+  - id: 148
+    name: "next-hop-ip"
+    name_zh: "下一跳IP（next-hop-ip）"
+    type: string
+  - id: 149
+    name: "next-hop-dn"
+    name_zh: "下一跳域名（next-hop-dn）"
+    type: string
+  - id: 150
+    name: "sip-hdr"
+    name_zh: "SIP头（sip-hdr）"
+    type: string
+  - id: 151
+    name: "dsp-id"
+    name_zh: "DSP ID（dsp-id）"
+    type: string
+  - id: 187
+    name: "Multilink-ID"
+    name_zh: "多链路ID（Multilink-ID）"
+    type: octets
+  - id: 188
+    name: "Num-In-Multilink"
+    name_zh: "多链路内数量（Num-In-Multilink）"
+    type: octets
+  - id: 190
+    name: "Pre-Input-Octets"
+    name_zh: "输入前字节数（Pre-Input-Octets）"
+    type: octets
+  - id: 191
+    name: "Pre-Output-Octets"
+    name_zh: "输出前字节数（Pre-Output-Octets）"
+    type: octets
+  - id: 192
+    name: "Pre-Input-Packets"
+    name_zh: "输入前报文数（Pre-Input-Packets）"
+    type: octets
+  - id: 193
+    name: "Pre-Output-Packets"
+    name_zh: "输出前报文数（Pre-Output-Packets）"
+    type: octets
+  - id: 194
+    name: "Maximum-Time"
+    name_zh: "最大时间（Maximum-Time）"
+    type: octets
+  - id: 195
+    name: "Disconnect-Cause"
+    name_zh: "断开原因（Disconnect-Cause）"
+    type: octets
+  - id: 197
+    name: "Data-Rate"
+    name_zh: "数据速率（Data-Rate）"
+    type: octets
+  - id: 198
+    name: "PreSession-Time"
+    name_zh: "会话前时间（PreSession-Time）"
+    type: octets
+  - id: 208
+    name: "PW-Lifetime"
+    name_zh: "PW生存期（PW-Lifetime）"
+    type: octets
+  - id: 209
+    name: "IP-Direct"
+    name_zh: "IP直连（IP-Direct）"
+    type: octets
+  - id: 210
+    name: "PPP-VJ-Slot-Comp"
+    name_zh: "PPP VJ槽位压缩（PPP-VJ-Slot-Comp）"
+    type: octets
+  - id: 212
+    name: "PPP-Async-Map"
+    name_zh: "PPP异步映射（PPP-Async-Map）"
+    type: octets
+  - id: 217
+    name: "IP-Pool-Definition"
+    name_zh: "IP地址池定义（IP-Pool-Definition）"
+    type: string
+  - id: 218
+    name: "Assign-IP-Pool"
+    name_zh: "分配IP地址池（Assign-IP-Pool）"
+    type: octets
+  - id: 228
+    name: "Route-IP"
+    name_zh: "IP路由（Route-IP）"
+    type: octets
+  - id: 233
+    name: "Link-Compression"
+    name_zh: "链路压缩（Link-Compression）"
+    type: octets
+  - id: 234
+    name: "Target-Util"
+    name_zh: "目标利用率（Target-Util）"
+    type: octets
+  - id: 235
+    name: "Maximum-Channels"
+    name_zh: "最大信道数（Maximum-Channels）"
+    type: octets
+  - id: 242
+    name: "Data-Filter"
+    name_zh: "数据过滤器（Data-Filter）"
+    type: octets
+  - id: 243
+    name: "Call-Filter"
+    name_zh: "呼叫过滤器（Call-Filter）"
+    type: octets
+  - id: 244
+    name: "Idle-Limit"
+    name_zh: "空闲限制（Idle-Limit）"
+    type: octets
+  - id: 249
+    name: "Subscriber-Password"
+    name_zh: "用户口令（Subscriber-Password）"
+    type: string
+  - id: 250
+    name: "Account-Info"
+    name_zh: "账户信息（Account-Info）"
+    type: string
+  - id: 251
+    name: "Service-Info"
+    name_zh: "服务信息（Service-Info）"
+    type: string
+  - id: 252
+    name: "Command-Code"
+    name_zh: "命令码（Command-Code）"
+    type: string
+  - id: 253
+    name: "Control-Info"
+    name_zh: "控制信息（Control-Info）"
+    type: string
+  - id: 255
+    name: "Xmit-Rate"
+    name_zh: "发送速率（Xmit-Rate）"
+    type: octets

@@ -1,0 +1,459 @@
+# Radius-Test 内置 Dictionary
+#
+# 模板：RFC2865
+# 来源：FreeRADIUS dictionary.rfc2865~rfc6929 + RADIUS属性.xlsx 表1（华为口径）
+#
+# 本文件由构建脚本生成，位于源代码内部，随程序一起分发。
+# 用户如需修改，请在 Web 的 Dictionary 页面使用「派生为自定义模板」。
+
+template: RFC2865
+vendor: ""
+vendor_id: 
+attributes:
+  - id: 1
+    name: "User-Name"
+    name_zh: "用户名"
+    type: string
+    desc: "需要进行认证的用户名。可以采用带域名的“用户名@域名”格式，也可以采用不带域名的“用户名”格式。"
+  - id: 2
+    name: "User-Password"
+    name_zh: "用户密码"
+    type: string
+    desc: "需要进行认证的用户密码，仅对PAP（Password Authentication Protocol）认证有效。"
+  - id: 3
+    name: "CHAP-Password"
+    name_zh: "CHAP密码"
+    type: string
+    desc: "需要进行认证的用户密码，仅对CHAP（Challenge Handshake Authentication Protocol）认证有效。"
+  - id: 4
+    name: "NAS-IP-Address"
+    name_zh: "NAS的IP地址"
+    type: ipaddr
+    desc: "认证请求报文中携带的NAS的IP（Internet Protocol）地址。缺省情况下，属性值为NAS发送认证请求报文的源IP地址。可以通过命令radius-attribute nas-ip { ip-address | ap-info }修改属性值为NAS上指定的IP地址或者AP的IP地址。"
+  - id: 5
+    name: "NAS-Port"
+    name_zh: "NAS端口"
+    type: integer
+    desc: "用户接入的物理端口号，可根据实际需要转换成不同格式："
+  - id: 6
+    name: "Service-Type"
+    name_zh: "服务类型"
+    type: integer
+    desc: "用户申请认证的业务类型："
+  - id: 7
+    name: "Framed-Protocol"
+    name_zh: "封装协议"
+    type: integer
+    desc: "用户Frame类型业务的封装协议："
+  - id: 8
+    name: "Framed-IP-Address"
+    name_zh: "分配给用户的IP地址"
+    type: ipaddr
+    desc: "用户的IP地址。"
+  - id: 9
+    name: "Framed-IP-Netmask"
+    name_zh: "子网掩码"
+    type: ipaddr
+  - id: 10
+    name: "Framed-Routing"
+    name_zh: "路由方式"
+    type: octets
+  - id: 11
+    name: "Filter-Id"
+    name_zh: "过滤规则标识"
+    type: string
+    desc: "UCL组名、用户组名称或者用户的IPv4 ACL（Access Control List）号。"
+  - id: 12
+    name: "Framed-Mtu"
+    name_zh: "最大传输单元"
+    type: integer
+    desc: "NAS与服务器之间数据链路的MTU值。例如在802.1X的EAP（Extensible Authentication Protocol）方式认证中，NAS通过Framed-Mtu值指示Server发送EAP报文的最大长度，防止EAP报文大于数据链路MTU导致的报文丢失。"
+  - id: 13
+    name: "Framed-Compression"
+    name_zh: "压缩协议"
+    type: octets
+  - id: 14
+    name: "Login-IP-Host"
+    name_zh: "登录主机地址"
+    type: ipaddr
+    desc: "管理员用户的IP地址："
+  - id: 15
+    name: "Login-Service"
+    name_zh: "登录服务"
+    type: integer
+    desc: "管理员用户可以使用的服务类型："
+  - id: 16
+    name: "Login-TCP-Port"
+    name_zh: "登录TCP端口"
+    type: octets
+  - id: 18
+    name: "Reply-Message"
+    name_zh: "回复消息"
+    type: string
+    desc: "认证成功或拒绝消息："
+  - id: 19
+    name: "Callback-Number"
+    name_zh: "回拨号码"
+    type: string
+    desc: "认证服务器回应的可以显示给用户的信息，例如移动电话号码等。"
+  - id: 20
+    name: "Callback-Id"
+    name_zh: "回拨标识"
+    type: string
+  - id: 22
+    name: "Framed-Route"
+    name_zh: "静态路由"
+    type: string
+  - id: 23
+    name: "Framed-IPX-Network"
+    name_zh: "Framed-IPX-Network"
+    type: ipaddr
+  - id: 24
+    name: "State"
+    name_zh: "状态"
+    type: string
+    desc: "如果RADIUS服务器发送给设备的认证挑战报文中包含该属性值，则设备在后续的认证请求报文中必须包含相同的值。"
+  - id: 25
+    name: "Class"
+    name_zh: "分类标识"
+    type: string
+    desc: "如果RADIUS服务器发送给NAS设备的认证接受报文中包含该属性值，则NAS在后续发送的所有计费请求报文中必须包含相同的值。"
+  - id: 26
+    name: "Vendor-Specific"
+    name_zh: "厂商自定义属性"
+    type: string
+    desc: "厂商自定义属性，具体请参见表2。一个报文中可以有一个或多个私有属性，每个私有属性中可以有一个或多个子属性。"
+  - id: 27
+    name: "Session-Timeout"
+    name_zh: "会话超时"
+    type: integer
+    desc: "在认证接受报文中，该属性表示为用户提供服务的剩余时间，单位为秒。"
+  - id: 28
+    name: "Idle-Timeout"
+    name_zh: "空闲超时"
+    type: integer
+    desc: "会话结束之前，允许用户持续空闲的最大时间，即用户的闲置切断时间，以秒为单位。"
+  - id: 29
+    name: "Termination-Action"
+    name_zh: "终止动作"
+    type: integer
+    desc: "用户的业务终止方式："
+  - id: 30
+    name: "Called-Station-Id"
+    name_zh: "被叫标识"
+    type: string
+    desc: "NAS设备的号码信息。"
+  - id: 31
+    name: "Calling-Station-Id"
+    name_zh: "主叫标识"
+    type: string
+    desc: "客户端的号码信息，一般为用户的MAC地址。"
+  - id: 32
+    name: "NAS-Identifier"
+    name_zh: "NAS标识"
+    type: string
+    desc: "NAS设备标识。缺省情况下，属性值为设备的主机名。可以通过命令radius-server nas-identifier-format { hostname | vlan-id | ap-info }修改属性值为用户的VLAN ID或AP的MAC地址。"
+  - id: 33
+    name: "Proxy-State"
+    name_zh: "代理状态"
+    type: octets
+  - id: 34
+    name: "Login-LAT-Service"
+    name_zh: "LAT服务"
+    type: string
+  - id: 35
+    name: "Login-LAT-Node"
+    name_zh: "LAT节点"
+    type: string
+  - id: 36
+    name: "Login-LAT-Group"
+    name_zh: "LAT组"
+    type: octets
+  - id: 37
+    name: "Framed-AppleTalk-Link"
+    name_zh: "AppleTalk链路号"
+    type: octets
+  - id: 38
+    name: "Framed-AppleTalk-Network"
+    name_zh: "AppleTalk网络号"
+    type: octets
+  - id: 39
+    name: "Framed-AppleTalk-Zone"
+    name_zh: "AppleTalk区域"
+    type: string
+  - id: 40
+    name: "Acct-Status-Type"
+    name_zh: "计费状态类型"
+    type: integer
+    desc: "计费请求报文Accounting-Request的类型："
+  - id: 41
+    name: "Acct-Delay-Time"
+    name_zh: "计费延迟时间"
+    type: integer
+    desc: "用于上报发送该计费报文花费的时间，单位为秒(不包括网络传输时间)。"
+  - id: 42
+    name: "Acct-Input-Octets"
+    name_zh: "入方向字节数"
+    type: integer
+    desc: "对应存储上行流量数据结构的低32位，表示上行流量字节数。与RADIUS属性52（Acct-Input-Gigawords）共同组成上行流量。"
+  - id: 43
+    name: "Acct-Output-Octets"
+    name_zh: "出方向字节数"
+    type: integer
+    desc: "对应存储下行流量数据结构的低32位，表示下行流量字节数。与RADIUS属性53（Acct-Output-Gigawords）共同组成下行流量。"
+  - id: 44
+    name: "Acct-Session-Id"
+    name_zh: "计费会话标识"
+    type: string
+    desc: "计费ID，同一个连接的开始计费、实时计费和停止计费报文的连接的计费ID必须相同。"
+  - id: 45
+    name: "Acct-Authentic"
+    name_zh: "计费认证方式"
+    type: integer
+    desc: "用户的认证模式："
+  - id: 46
+    name: "Acct-Session-Time"
+    name_zh: "会话时长"
+    type: integer
+    desc: "用户的在线时长，以秒为单位。"
+  - id: 47
+    name: "Acct-Input-Packets"
+    name_zh: "入方向报文数"
+    type: integer
+    desc: "上行报文的数目。"
+  - id: 48
+    name: "Acct-Output-Packets"
+    name_zh: "出方向报文数"
+    type: integer
+    desc: "下行报文的数目。"
+  - id: 49
+    name: "Acct-Terminate-Cause"
+    name_zh: "终止原因"
+    type: string
+    desc: "用户连接中断的原因："
+  - id: 50
+    name: "Acct-Multi-Session-Id"
+    name_zh: "多会话标识"
+    type: string
+  - id: 51
+    name: "Acct-Link-Count"
+    name_zh: "链路计数"
+    type: octets
+  - id: 52
+    name: "Acct-Input-Gigawords"
+    name_zh: "入方向吉字节计数"
+    type: integer
+    desc: "对应存储上行流量数据结构的高32位，表示上行的流量字节数是4G(即2^32)字节的多少倍。与RADIUS属性42(Acct-Input-Octets)共同组成上行流量。"
+  - id: 53
+    name: "Acct-Output-Gigawords"
+    name_zh: "出方向吉字节计数"
+    type: integer
+    desc: "对应存储下行流量数据结构的高32位，表示下行的流量字节数是4G(即2^32)字节的多少倍。与RADIUS属性43(Acct-Output-Octets)共同组成下行流量。"
+  - id: 55
+    name: "Event-Timestamp"
+    name_zh: "事件时间戳"
+    type: integer
+    desc: "生成计费报文的时间，以秒为单位，表示从1970年1月1日0点0分0秒以来的绝对秒数。"
+  - id: 60
+    name: "CHAP-Challenge"
+    name_zh: "CHAP挑战值"
+    type: string
+    desc: "CHAP认证的质询字段，该质询字段是CHAP认证中由NAS生成的用于MD5（Message Digest algorithm 5）计算的随机序列。"
+  - id: 61
+    name: "NAS-Port-Type"
+    name_zh: "NAS端口类型"
+    type: integer
+    desc: "NAS的端口类型，用户可以在设备的接口视图下配置。默认类型是Ethernet（15）。"
+  - id: 62
+    name: "Port-Limit"
+    name_zh: "端口限制"
+    type: octets
+  - id: 63
+    name: "Login-LAT-Port"
+    name_zh: "LAT端口"
+    type: string
+  - id: 64
+    name: "Tunnel-Type"
+    name_zh: "隧道类型"
+    type: integer
+    desc: "隧道采用的协议类型，目前仅支持取值为13，表示VLAN协议。"
+  - id: 65
+    name: "Tunnel-Medium-Type"
+    name_zh: "隧道介质类型"
+    type: integer
+    desc: "隧道承载媒介类型，固定为6，表示以太类型。"
+  - id: 66
+    name: "Tunnel-Client-Endpoint"
+    name_zh: "隧道客户端端点"
+    type: string
+  - id: 67
+    name: "Tunnel-Server-Endpoint"
+    name_zh: "隧道服务端端点"
+    type: string
+  - id: 68
+    name: "Acct-Tunnel-Connection"
+    name_zh: "隧道连接标识"
+    type: string
+  - id: 69
+    name: "Tunnel-Password"
+    name_zh: "隧道密码"
+    type: string
+  - id: 70
+    name: "ARAP-Password"
+    name_zh: "ARAP密码"
+    type: octets
+  - id: 71
+    name: "ARAP-Features"
+    name_zh: "ARAP特性"
+    type: octets
+  - id: 72
+    name: "ARAP-Zone-Access"
+    name_zh: "ARAP区域访问"
+    type: octets
+  - id: 73
+    name: "ARAP-Security"
+    name_zh: "ARAP安全"
+    type: octets
+  - id: 74
+    name: "ARAP-Security-Data"
+    name_zh: "ARAP安全数据"
+    type: string
+  - id: 75
+    name: "Password-Retry"
+    name_zh: "密码重试次数"
+    type: octets
+  - id: 76
+    name: "Prompt"
+    name_zh: "提示符"
+    type: octets
+  - id: 77
+    name: "Connect-Info"
+    name_zh: "连接信息"
+    type: string
+  - id: 78
+    name: "Configuration-Token"
+    name_zh: "配置令牌"
+    type: string
+  - id: 79
+    name: "EAP-Message"
+    name_zh: "EAP报文"
+    type: string
+    desc: "用于封装EAP报文，实现RADIUS协议对EAP认证方式的支持。EAP报文长度超过253时支持封装成多个属性，一个RADIUS报文可携带多个该字段。"
+  - id: 80
+    name: "Message-Authenticator"
+    name_zh: "报文认证码"
+    type: string
+    desc: "用于对认证报文进行认证和校验，防止非法报文欺骗。"
+  - id: 81
+    name: "Tunnel-Private-Group-ID"
+    name_zh: "隧道私有组标识"
+    type: string
+    desc: "隧道私有组标识，目前通过该属性下发用户VLAN。"
+  - id: 82
+    name: "Tunnel-Assignment-Id"
+    name_zh: "隧道分配标识"
+    type: string
+  - id: 83
+    name: "Tunnel-Preference"
+    name_zh: "隧道优先级"
+    type: octets
+  - id: 84
+    name: "ARAP-Challenge-Response"
+    name_zh: "ARAP挑战响应"
+    type: octets
+  - id: 85
+    name: "Acct-Interim-Interval"
+    name_zh: "计费间隔"
+    type: integer
+    desc: "用户的实时计费间隔，以秒为单位，建议该值不要小于600秒。支持下发范围60～3932100。"
+  - id: 86
+    name: "Acct-Tunnel-Packets-Lost"
+    name_zh: "隧道丢失报文数"
+    type: octets
+  - id: 87
+    name: "NAS-Port-Id"
+    name_zh: "NAS端口标识"
+    type: string
+    desc: "用户接入的端口号，包括以下格式："
+  - id: 88
+    name: "Framed-Pool"
+    name_zh: "地址池名称"
+    type: string
+  - id: 89
+    name: "Chargeable-User-Identity"
+    name_zh: "计费用户标识"
+    type: string
+    desc: "由服务器下发的计费标识。支持情况由命令radius-server support chargeable-user-identity [ not-reject ]配置。"
+  - id: 90
+    name: "Tunnel-Client-Auth-Id"
+    name_zh: "隧道客户端认证标识"
+    type: string
+  - id: 91
+    name: "Tunnel-Server-Auth-Id"
+    name_zh: "隧道服务端认证标识"
+    type: string
+  - id: 95
+    name: "NAS-IPv6-Address"
+    name_zh: "NAS的IPv6地址"
+    type: ipaddr
+    desc: "NAS设备发送的认证请求报文中携带的设备IPv6地址。NAS-IPv6-Address可以和NAS-IP-Address同时出现在报文中。"
+  - id: 96
+    name: "Framed-Interface-Id"
+    name_zh: "接口标识"
+    type: string
+    desc: "用户IPv6接口标识。"
+  - id: 97
+    name: "Framed-IPv6-Prefix"
+    name_zh: "分配的IPv6前缀"
+    type: ipaddr
+    desc: "用户IPv6地址前缀。"
+  - id: 98
+    name: "Login-IPv6-Host"
+    name_zh: "登录IPv6主机"
+    type: ipv6addr
+  - id: 99
+    name: "Framed-IPv6-Route"
+    name_zh: "IPv6路由"
+    type: string
+  - id: 100
+    name: "Framed-IPv6-Pool"
+    name_zh: "IPv6地址池"
+    type: string
+  - id: 123
+    name: "Delegated-IPv6-Prefix"
+    name_zh: "下发的IPv6前缀"
+    type: ipv6prefix
+  - id: 195
+    name: "HW-SecurityStr"
+    name_zh: "HW-SecurityStr"
+    type: string
+    desc: "EAP透传认证时用于携带用户的安全信息。"
+    packet_support:
+      access_request: "0-1"
+      access_accept: "0"
+      access_reject: "0"
+      access_challenge: "0"
+  - id: 241
+    name: "Extended-Attribute-1"
+    name_zh: "Extended-Attribute-1"
+    type: tlv
+  - id: 242
+    name: "Extended-Attribute-2"
+    name_zh: "Extended-Attribute-2"
+    type: tlv
+  - id: 243
+    name: "Extended-Attribute-3"
+    name_zh: "Extended-Attribute-3"
+    type: tlv
+  - id: 244
+    name: "Extended-Attribute-4"
+    name_zh: "Extended-Attribute-4"
+    type: tlv
+  - id: 245
+    name: "Extended-Attribute-5"
+    name_zh: "Extended-Attribute-5"
+    type: tlv
+  - id: 246
+    name: "Extended-Attribute-6"
+    name_zh: "Extended-Attribute-6"
+    type: tlv

@@ -1,0 +1,250 @@
+# Radius-Test 内置 Dictionary
+#
+# 模板：Microsoft
+# 来源：FreeRADIUS dictionary.microsoft + RADIUS属性.xlsx 表3
+#
+# 本文件由构建脚本生成，位于源代码内部，随程序一起分发。
+# 用户如需修改，请在 Web 的 Dictionary 页面使用「派生为自定义模板」。
+
+template: Microsoft
+vendor: "Microsoft"
+vendor_id: 311
+attributes:
+  - id: 1
+    name: "CHAP-Response"
+    name_zh: "MS-CHAP响应（CHAP-Response）"
+    type: octets
+  - id: 2
+    name: "CHAP-Error"
+    name_zh: "MS-CHAP错误（CHAP-Error）"
+    type: string
+  - id: 3
+    name: "CHAP-CPW-1"
+    name_zh: "MS-CHAP改密响应1（CHAP-CPW-1）"
+    type: octets
+  - id: 4
+    name: "CHAP-CPW-2"
+    name_zh: "MS-CHAP改密响应2（CHAP-CPW-2）"
+    type: octets
+  - id: 5
+    name: "CHAP-LM-Enc-PW"
+    name_zh: "MS-CHAP LM加密口令（CHAP-LM-Enc-PW）"
+    type: octets
+  - id: 6
+    name: "CHAP-NT-Enc-PW"
+    name_zh: "MS-CHAP NT加密口令（CHAP-NT-Enc-PW）"
+    type: octets
+  - id: 7
+    name: "MPPE-Encryption-Policy"
+    name_zh: "MPPE加密策略（MPPE-Encryption-Policy）"
+    type: octets
+    desc: "MPPE 加密策略，指示是否对会话启用 Microsoft 点对点加密（MPPE）。"
+  - id: 8
+    name: "MPPE-Encryption-Type"
+    name_zh: "MPPE加密类型（MPPE-Encryption-Type）"
+    type: octets
+    desc: "MPPE 加密类型/密钥强度，如 40 位/128 位 RC4。"
+  - id: 9
+    name: "RAS-Vendor"
+    name_zh: "RAS厂商（RAS-Vendor）"
+    type: octets
+  - id: 10
+    name: "CHAP-Domain"
+    name_zh: "MS-CHAP域（CHAP-Domain）"
+    type: string
+  - id: 11
+    name: "CHAP-Challenge"
+    name_zh: "MS-CHAP挑战值（CHAP-Challenge）"
+    type: octets
+  - id: 12
+    name: "CHAP-MPPE-Keys"
+    name_zh: "MS-CHAP MPPE密钥（CHAP-MPPE-Keys）"
+    type: octets
+  - id: 13
+    name: "BAP-Usage"
+    name_zh: "BAP使用方式（BAP-Usage）"
+    type: octets
+  - id: 14
+    name: "Link-Utilization-Threshold"
+    name_zh: "链路利用率阈值（Link-Utilization-Threshold）"
+    type: octets
+  - id: 15
+    name: "Link-Drop-Time-Limit"
+    name_zh: "链路丢弃时间限制（Link-Drop-Time-Limit）"
+    type: octets
+  - id: 16
+    name: "MS-MPPE-Send-Key"
+    name_zh: "MPPE发送密钥（MS-MPPE-Send-Key）"
+    type: string
+    desc: "MPPE发送密钥。"
+  - id: 17
+    name: "MS-MPPE-Recv-Key"
+    name_zh: "MPPE接收密钥（MS-MPPE-Recv-Key）"
+    type: string
+    desc: "MPPE接收密钥。"
+  - id: 18
+    name: "RAS-Version"
+    name_zh: "RAS版本（RAS-Version）"
+    type: string
+  - id: 19
+    name: "Old-ARAP-Password"
+    name_zh: "旧ARAP口令（Old-ARAP-Password）"
+    type: octets
+  - id: 20
+    name: "New-ARAP-Password"
+    name_zh: "新ARAP口令（New-ARAP-Password）"
+    type: octets
+  - id: 21
+    name: "ARAP-PW-Change-Reason"
+    name_zh: "ARAP改密原因（ARAP-PW-Change-Reason）"
+    type: octets
+  - id: 22
+    name: "Filter"
+    name_zh: "过滤器（Filter）"
+    type: octets
+  - id: 23
+    name: "Acct-Auth-Type"
+    name_zh: "计费认证类型（Acct-Auth-Type）"
+    type: octets
+  - id: 24
+    name: "Acct-EAP-Type"
+    name_zh: "计费EAP类型（Acct-EAP-Type）"
+    type: octets
+  - id: 25
+    name: "CHAP2-Response"
+    name_zh: "MS-CHAPv2响应（CHAP2-Response）"
+    type: octets
+    desc: "MS-CHAP v2 挑战响应。"
+  - id: 26
+    name: "CHAP2-Success"
+    name_zh: "MS-CHAPv2成功（CHAP2-Success）"
+    type: octets
+    desc: "MS-CHAP v2 成功报文。"
+  - id: 27
+    name: "CHAP2-CPW"
+    name_zh: "MS-CHAPv2改密（CHAP2-CPW）"
+    type: octets
+  - id: 28
+    name: "Primary-DNS-Server"
+    name_zh: "主DNS服务器（Primary-DNS-Server）"
+    type: ipaddr
+  - id: 29
+    name: "Secondary-DNS-Server"
+    name_zh: "备用DNS服务器（Secondary-DNS-Server）"
+    type: ipaddr
+  - id: 30
+    name: "Primary-NBNS-Server"
+    name_zh: "主NBNS服务器（Primary-NBNS-Server）"
+    type: ipaddr
+  - id: 31
+    name: "Secondary-NBNS-Server"
+    name_zh: "备用NBNS服务器（Secondary-NBNS-Server）"
+    type: ipaddr
+  - id: 34
+    name: "RAS-Client-Name"
+    name_zh: "RAS客户端名称（RAS-Client-Name）"
+    type: string
+  - id: 35
+    name: "RAS-Client-Version"
+    name_zh: "RAS客户端版本（RAS-Client-Version）"
+    type: string
+  - id: 36
+    name: "Quarantine-IPFilter"
+    name_zh: "隔离IP过滤器（Quarantine-IPFilter）"
+    type: octets
+  - id: 37
+    name: "Quarantine-Session-Timeout"
+    name_zh: "隔离会话超时（Quarantine-Session-Timeout）"
+    type: octets
+  - id: 40
+    name: "User-Security-Identity"
+    name_zh: "用户安全标识（User-Security-Identity）"
+    type: string
+  - id: 41
+    name: "Identity-Type"
+    name_zh: "身份类型（Identity-Type）"
+    type: octets
+  - id: 42
+    name: "Service-Class"
+    name_zh: "服务类别（Service-Class）"
+    type: string
+  - id: 44
+    name: "Quarantine-User-Class"
+    name_zh: "隔离用户类别（Quarantine-User-Class）"
+    type: string
+  - id: 45
+    name: "Quarantine-State"
+    name_zh: "隔离状态（Quarantine-State）"
+    type: octets
+  - id: 46
+    name: "Quarantine-Grace-Time"
+    name_zh: "隔离宽限时间（Quarantine-Grace-Time）"
+    type: octets
+  - id: 47
+    name: "Network-Access-Server-Type"
+    name_zh: "网络访问服务器类型（Network-Access-Server-Type）"
+    type: octets
+  - id: 48
+    name: "AFW-Zone"
+    name_zh: "应用防火墙区域（AFW-Zone）"
+    type: octets
+  - id: 49
+    name: "AFW-Protection-Level"
+    name_zh: "应用防火墙保护级别（AFW-Protection-Level）"
+    type: octets
+  - id: 50
+    name: "Machine-Name"
+    name_zh: "机器名（Machine-Name）"
+    type: string
+  - id: 51
+    name: "IPv6-Filter"
+    name_zh: "IPv6过滤器（IPv6-Filter）"
+    type: octets
+  - id: 52
+    name: "IPv4-Remediation-Servers"
+    name_zh: "IPv4修复服务器（IPv4-Remediation-Servers）"
+    type: octets
+  - id: 53
+    name: "IPv6-Remediation-Servers"
+    name_zh: "IPv6修复服务器（IPv6-Remediation-Servers）"
+    type: octets
+  - id: 54
+    name: "RNAP-Not-Quarantine-Capable"
+    name_zh: "RNAP不支持隔离（RNAP-Not-Quarantine-Capable）"
+    type: octets
+  - id: 55
+    name: "Quarantine-SOH"
+    name_zh: "隔离SOH（Quarantine-SOH）"
+    type: octets
+  - id: 56
+    name: "RAS-Correlation"
+    name_zh: "RAS关联（RAS-Correlation）"
+    type: octets
+  - id: 57
+    name: "Extended-Quarantine-State"
+    name_zh: "扩展隔离状态（Extended-Quarantine-State）"
+    type: octets
+  - id: 58
+    name: "HCAP-User-Groups"
+    name_zh: "HCAP用户组（HCAP-User-Groups）"
+    type: string
+  - id: 59
+    name: "HCAP-Location-Group-Name"
+    name_zh: "HCAP位置组名（HCAP-Location-Group-Name）"
+    type: string
+  - id: 60
+    name: "HCAP-User-Name"
+    name_zh: "HCAP用户名（HCAP-User-Name）"
+    type: string
+  - id: 61
+    name: "User-IPv4-Address"
+    name_zh: "用户IPv4地址（User-IPv4-Address）"
+    type: ipaddr
+  - id: 62
+    name: "User-IPv6-Address"
+    name_zh: "用户IPv6地址（User-IPv6-Address）"
+    type: ipv6addr
+  - id: 63
+    name: "TSG-Device-Redirection"
+    name_zh: "TSG设备重定向（TSG-Device-Redirection）"
+    type: octets

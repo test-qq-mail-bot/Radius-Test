@@ -1,0 +1,22 @@
+# Radius-Test 内置 Dictionary
+#
+# 模板：DSLForum
+# 来源：RFC 3046 + RADIUS属性.xlsx 表3（FreeRADIUS 无独立 DSL Forum 字典）
+#
+# 本文件由构建脚本生成，位于源代码内部，随程序一起分发。
+# 用户如需修改，请在 Web 的 Dictionary 页面使用「派生为自定义模板」。
+
+template: DSLForum
+vendor: "DSLForum"
+vendor_id: 3565
+attributes:
+  - id: 1
+    name: "Agent-Circuit-Id"
+    name_zh: "代理电路标识（Agent-Circuit-Id）"
+    type: string
+    desc: "上线用户对应到接入设备的线路ID。"
+  - id: 2
+    name: "Agent-Remote-Id"
+    name_zh: "代理远端标识（Agent-Remote-Id）"
+    type: string
+    desc: "上线用户的与线路关联的唯一标识。"
