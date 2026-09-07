@@ -1,0 +1,24 @@
+# Radius-Test 运行时依赖（精确版本，禁止使用版本范围）
+#
+# Python 版本：3.12.11（由 uv 管理，见 pyproject 说明）
+# 说明：
+#   1. 不使用 uvicorn[standard]，Windows 无 uvloop，且会拉入 httptools/watchfiles；
+#   2. 不使用 psutil，资源保护只保留任务数量一项；
+#   3. 全部依赖离线可用，程序运行时不访问互联网。
+
+annotated-types==0.8.0
+anyio==4.14.2
+click==8.5.0
+cryptography==45.0.3
+fastapi==0.115.12
+h11==0.16.0
+idna==3.19
+pydantic==2.13.5
+pydantic-core==2.46.5
+python-multipart==0.0.32
+pyyaml==6.0.2
+starlette==0.46.2
+typing-extensions==4.16.0
+typing-inspection==0.4.4
+uvicorn==0.34.2
+websockets==15.0.1

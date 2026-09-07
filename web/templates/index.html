@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radius-Test</title>
+<link rel="icon" type="image/svg+xml" href="/static/svg/logo.svg">
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="app-body">
+
+<div class="app-layout">
+
+  <aside class="app-sidebar">
+    <div class="app-sidebar-brand">
+      <img class="app-sidebar-logo" src="/static/svg/logo.svg" alt="Radius-Test">
+      <div class="app-sidebar-title">
+        <span class="app-sidebar-name" id="sidebar-software-name">Radius-Test</span>
+        <span class="app-sidebar-version" id="sidebar-software-version">加载中</span>
+      </div>
+    </div>
+    <nav class="app-nav" id="app-nav">
+      <a class="app-nav-item" href="#/home" data-page="home">
+        <img class="app-nav-icon" src="/static/svg/nav-home.svg" alt="">
+        <span class="app-nav-text">首页</span>
+      </a>
+      <a class="app-nav-item" href="#/server" data-page="server">
+        <img class="app-nav-icon" src="/static/svg/nav-server.svg" alt="">
+        <span class="app-nav-text">RADIUS Server</span>
+      </a>
+      <a class="app-nav-item" href="#/user" data-page="user">
+        <img class="app-nav-icon" src="/static/svg/nav-user.svg" alt="">
+        <span class="app-nav-text">用户管理</span>
+      </a>
+      <a class="app-nav-item" href="#/perf" data-page="perf">
+        <img class="app-nav-icon" src="/static/svg/nav-perf.svg" alt="">
+        <span class="app-nav-text">性能测试</span>
+      </a>
+      <a class="app-nav-item" href="#/result" data-page="result">
+        <img class="app-nav-icon" src="/static/svg/nav-result.svg" alt="">
+        <span class="app-nav-text">测试结果</span>
+      </a>
+      <a class="app-nav-item" href="#/parse" data-page="parse">
+        <img class="app-nav-icon" src="/static/svg/nav-parse.svg" alt="">
+        <span class="app-nav-text">RADIUS 解析</span>
+      </a>
+      <a class="app-nav-item" href="#/dict" data-page="dict">
+        <img class="app-nav-icon" src="/static/svg/nav-dict.svg" alt="">
+        <span class="app-nav-text">RADIUS Dictionary</span>
+      </a>
+      <a class="app-nav-item" href="#/config" data-page="config">
+        <img class="app-nav-icon" src="/static/svg/nav-config.svg" alt="">
+        <span class="app-nav-text">系统配置</span>
+      </a>
+    </nav>
+    <div class="app-sidebar-footer">
+      <div class="app-sidebar-footer-row">
+        <span class="app-sidebar-footer-label">Python</span>
+        <span class="app-sidebar-footer-value" id="sidebar-python-version">--</span>
+      </div>
+      <div class="app-sidebar-footer-row">
+        <span class="app-sidebar-footer-label">构建</span>
+        <span class="app-sidebar-footer-value" id="sidebar-platform">--</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <header class="app-header">
+      <div class="app-header-left">
+        <h1 class="app-header-title" id="page-title">首页</h1>
+        <span class="app-header-desc" id="page-desc"></span>
+      </div>
+      <div class="app-header-right">
+        <span class="app-header-status" id="header-status"></span>
+        <button class="app-button app-button-ghost" id="header-refresh-button" type="button">
+          <img class="app-button-icon" src="/static/svg/action-refresh.svg" alt="">
+          <span class="app-button-text">刷新</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="app-warning" id="listen-warning" hidden>
+      <img class="app-warning-icon" src="/static/svg/status-warning.svg" alt="">
+      <span class="app-warning-text" id="listen-warning-text"></span>
+    </div>
+
+    <section class="app-content" id="app-content">
+      <div class="app-loading" id="app-loading">
+        <span class="app-loading-text">加载中</span>
+      </div>
+    </section>
+  </main>
+
+</div>
+
+<div class="app-toast-host" id="toast-host"></div>
+
+<div class="app-modal-host" id="modal-host" hidden>
+  <div class="app-modal-mask" id="modal-mask"></div>
+  <div class="app-modal-panel" id="modal-panel">
+    <div class="app-modal-header">
+      <span class="app-modal-title" id="modal-title"></span>
+      <button class="app-modal-close" id="modal-close" type="button">
+        <img class="app-modal-close-icon" src="/static/svg/action-close.svg" alt="">
+      </button>
+    </div>
+    <div class="app-modal-body" id="modal-body"></div>
+    <div class="app-modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<script src="/static/js/debug.js"></script>
+<script src="/static/js/api.js"></script>
+<script src="/static/js/ws.js"></script>
+<script src="/static/js/table.js"></script>
+<script src="/static/js/page-home.js"></script>
+<script src="/static/js/page-server.js"></script>
+<script src="/static/js/page-user.js"></script>
+<script src="/static/js/page-perf.js"></script>
+<script src="/static/js/page-result.js"></script>
+<script src="/static/js/page-parse.js"></script>
+<script src="/static/js/page-dict.js"></script>
+<script src="/static/js/page-config.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
