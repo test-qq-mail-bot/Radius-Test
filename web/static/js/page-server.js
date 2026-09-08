@@ -149,7 +149,7 @@
 
       var submitRow = document.createElement('div');
       submitRow.className = 'app-form-row';
-      var submit = global.RtUI.button('新增', 'primary', '/static/svg/action-add.svg');
+      var submit = global.RtUI.button('新增', 'primary');
 
       /* 按钮内部节点：loading 结束后 withLoading 会用 innerHTML 重建按钮内容，
          因此不能缓存节点引用，必须每次现取并判空。 */
@@ -157,10 +157,7 @@
         return submit.querySelector('.app-button-text');
       }
 
-      function submitIconNode() {
-        return submit.querySelector('.app-button-icon');
-      }
-      var cancelEdit = global.RtUI.button('取消', '', '');
+      var cancelEdit = global.RtUI.button('取消', '');
       cancelEdit.hidden = true;
       cancelEdit.addEventListener('click', function () {
         exitEditMode();
@@ -238,11 +235,6 @@
         if (textNode) {
           textNode.textContent = '保存';
         }
-        // 编辑态的「保存」按钮不显示图标
-        var iconNode = submitIconNode();
-        if (iconNode) {
-          iconNode.hidden = true;
-        }
         findField('name').value = server.name;
         findField('server_address').value = server.server_address;
         findField('shared_secret').value = server.shared_secret || '';
@@ -267,10 +259,6 @@
         if (textNode) {
           textNode.textContent = '新增';
         }
-        var iconNode = submitIconNode();
-        if (iconNode) {
-          iconNode.hidden = false;
-        }
         form.reset();
         findField('name').readOnly = false;
         findField('authentication_port').value = 1812;
@@ -288,18 +276,13 @@
       listCard.body.appendChild(listHost);
       container.appendChild(listCard.element);
 
-      function actionButton(text, icon, className, handler) {
+      function actionButton(text, className, handler) {
         var button = document.createElement('button');
         button.className = 'app-button ' + (className || '');
         button.type = 'button';
-        var image = document.createElement('img');
-        image.className = 'app-button-icon';
-        image.src = icon;
-        image.alt = '';
         var span = document.createElement('span');
         span.className = 'app-button-text';
         span.textContent = text;
-        button.appendChild(image);
         button.appendChild(span);
         button.addEventListener('click', handler);
         return button;
@@ -332,8 +315,8 @@
         resultWrap.appendChild(resultTitle);
         resultWrap.appendChild(resultBox);
 
-        var testBtn = global.RtUI.button('开始测试', 'primary', '/static/svg/action-test.svg');
-        var cancelBtn = global.RtUI.button('取消', '', '');
+        var testBtn = global.RtUI.button('开始测试', 'primary');
+        var cancelBtn = global.RtUI.button('取消', '');
         cancelBtn.addEventListener('click', function () {
           global.RtUI.closeModal();
         });
@@ -436,7 +419,7 @@
 
             var actions = document.createElement('div');
             actions.className = 'app-form-row';
-            var testButton = actionButton('测试服务器', '/static/svg/action-test.svg', '',
+            var testButton = actionButton('测试服务器', '',
               function (event) {
                 global.RtUI.withLoading(testButton, function () {
                   return global.RtApi.testServer(server.name).then(function (result) {
@@ -452,15 +435,15 @@
                   });
                 }, event);
               });
-            var userTestButton = actionButton('Radius 用户测试', '/static/svg/action-test.svg', '',
+            var userTestButton = actionButton('Radius 用户测试', '',
               function (event) {
                 openUserTestModal(server, event);
               });
-            var editButton = actionButton('修改', '/static/svg/action-edit.svg', '',
+            var editButton = actionButton('修改', '',
               function (event) {
                 enterEditMode(server);
               });
-            var deleteButton = actionButton('删除', '/static/svg/action-delete.svg', 'app-button-danger',
+            var deleteButton = actionButton('删除', 'app-button-danger',
               function (event) {
                 global.RtUI.confirm('删除 Server', '确认删除 Server「' + server.name + '」？')
                   .then(function (confirmed) {

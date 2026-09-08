@@ -417,11 +417,6 @@ code,
   display: none !important;
 }
 
-/* 图标隐藏：按钮为 flex 容器，需显式覆盖 hidden */
-.app-button-icon[hidden] {
-  display: none !important;
-}
-
 .app-warning-icon {
   width: 18px;
   height: 18px;
@@ -795,20 +790,22 @@ code,
   pointer-events: none;
 }
 
+/* 统一按钮风格：所有按钮均为白底（primary 不再使用蓝色底）。
+   仅危险操作按钮保留「红边框 + 红字」作为区分。 */
 .app-button-primary {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-text-inverse);
-  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2);
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+  box-shadow: none;
 }
 .app-button-primary:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-  color: var(--color-text-inverse);
+  background: var(--color-surface-hover);
+  border-color: var(--color-text-subtle);
+  color: var(--color-text);
 }
 .app-button-primary:active {
-  background: var(--color-primary-active);
-  border-color: var(--color-primary-active);
+  background: var(--color-surface-hover);
+  border-color: var(--color-text-subtle);
 }
 
 .app-button-danger {
@@ -822,16 +819,7 @@ code,
   color: var(--color-text-inverse);
 }
 
-.app-button-ghost {
-  background: transparent;
-  border-color: transparent;
-  color: var(--color-text-muted);
-}
-.app-button-ghost:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text);
-  border-color: transparent;
-}
+/* 按钮统一白底加边框，不再保留透明的幽灵样式 */
 
 .app-button-link {
   background: transparent;
@@ -864,17 +852,12 @@ code,
   width: 100%;
 }
 
-.app-button-icon {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
-}
-
+/* 按钮已统一为白底深字，转圈颜色必须跟随文字色，否则白底上不可见 */
 .app-button-spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #ffffff;
+  border: 2px solid var(--color-border-strong);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: rt-spin 0.8s linear infinite;
 }
@@ -1101,22 +1084,13 @@ code,
 .app-pagination {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* 数据表格需求描述 10.8：整组分页控件位于表格右下角，
+     从左到右顺序为 数据总量 → 每页显示数量 → 上一页 → 数字页码 → 下一页 */
+  justify-content: flex-end;
   gap: 12px;
   padding: 12px 16px;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
-}
-
-.app-pagination-info {
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.app-pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .app-pagination-total {
@@ -1615,6 +1589,21 @@ code,
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+
+/* 导入用户弹窗：规范提示与内容文本框 */
+.app-user-import-tip {
+  display: block;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-hover);
+  line-height: 1.7;
+}
+
+.app-user-import-textarea {
+  min-height: 220px;
 }
 
 /* ============================================================ 用户测试结果面板

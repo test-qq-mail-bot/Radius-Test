@@ -103,6 +103,87 @@ def parse_users_csv(text: str) -> List[dict]:
     return users
 
 
+def parse_users_csv_rows(text: str) -> Tuple[List[dict], List[dict]]:
+    """
+    逐行容错解析导入用 CSV。
+
+    与严格版 parse_users_csv 的区别：
+        严格版遇到第一条非法数据即抛 ValidationError，整批失败；
+        本函数把非法行记录为失败明细并跳过，保证「一批里只有几条坏数据」时
+        其余合法行仍可导入。
+
+    重要：
+        **本函数仅供「导入」使用**。加载主数据 data/users.csv 必须使用严格版
+        parse_users_csv——若主数据加载也容错，坏行会被静默丢弃，
+        下次回写 users.csv 时会造成真实的数据丢失。
+
+    参数：
+        text: CSV 文本内容
+
+    返回：
+        (users, failures)
+            users    合法用户列表（password 允许为空，由导入侧按「留空=不修改」处理）
+            failures 失败明细，元素为 {"line": 行号, "username": 用户名, "reason": 原因}
+
+    说明：
+        合法用户会带一个内部键 _line 记录行号，调用方（导入接口）在入库前
+        必须 pop 掉，避免污染对外返回的用户数据。
+    """
+    users = []
+    failures = []
+    seen = set()
+    reader = csv.reader(io.StringIO(text))
+    header_passed = False
+    for line_no, row in enumerate(reader, start=1):
+        if not row:
+            continue
+        cells = [c.strip() for c in row]
+        # 整行都空才算空行；仅“用户名为空”属于非法数据行，必须计入失败明细，
+        # 否则会出现「成功 9 + 失败 0 = 少 1 行」的困惑。
+        if not any(cells):
+            continue
+        if cells[0].startswith("#"):
+            continue
+        if not header_passed:
+            if [c.lower() for c in cells[:2]] == ["username", "password"]:
+                header_passed = True
+                continue
+            # 首行不是表头：兼容无表头 CSV，本行直接按数据行解析
+            header_passed = True
+        username = cells[0]
+        password = cells[1] if len(cells) > 1 else ""
+        enabled_raw = cells[2] if len(cells) > 2 else "true"
+        remark = cells[3] if len(cells) > 3 else ""
+        if not is_valid_username(username):
+            failures.append({
+                "line": line_no, "username": username, "reason": "用户名非法或为空"})
+            continue
+        # 密码允许为空（留空代表不修改），非空才校验合法性
+        if password and not is_valid_password(password):
+            failures.append({
+                "line": line_no, "username": username, "reason": "密码非法（长度需 1~256）"})
+            continue
+        if username in seen:
+            failures.append({
+                "line": line_no, "username": username, "reason": "导入文件中存在重复用户名"})
+            continue
+        try:
+            enabled = _normalize_enabled(enabled_raw)
+        except ValidationError:
+            failures.append({
+                "line": line_no, "username": username, "reason": "enabled 取值非法（只允许 true/false）"})
+            continue
+        seen.add(username)
+        users.append({
+            "_line": line_no,
+            "username": username,
+            "password": password,
+            "enabled": enabled,
+            "remark": remark,
+        })
+    return users, failures
+
+
 def render_users_csv(users: List[dict]) -> str:
     """
     生成用户 CSV 文本（含注释模板）。

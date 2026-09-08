@@ -31,7 +31,10 @@
       return { element: element, body: body };
     },
 
-    button: function (text, kind, icon, size) {
+    /* 按钮统一无图标。
+       原因：图标是 <img>，在蓝色主按钮上完全不可见，且会撑出多余空白。
+       按需求移除全部按钮图标；导航图标与表格排序/筛选图标属功能性图标，不受影响。 */
+    button: function (text, kind, size) {
       var button = document.createElement('button');
       var classes = ['app-button'];
       if (kind) {
@@ -44,13 +47,6 @@
       }
       button.className = classes.join(' ');
       button.type = 'button';
-      if (icon) {
-        var image = document.createElement('img');
-        image.className = 'app-button-icon';
-        image.src = icon;
-        image.alt = '';
-        button.appendChild(image);
-      }
       var span = document.createElement('span');
       span.className = 'app-button-text';
       span.textContent = text;
@@ -208,7 +204,7 @@
 
       var actions = buttons && buttons.length ? buttons : [];
       if (actions.length === 0) {
-        var close = UI.button('关闭', '', '');
+        var close = UI.button('关闭', '');
         close.addEventListener('click', function () {
           UI.closeModal();
         });
@@ -230,8 +226,8 @@
 
     confirm: function (title, message, pairs) {
       return new Promise(function (resolve) {
-        var okButton = UI.button('确定', 'primary', '');
-        var cancelButton = UI.button('取消', '', '');
+        var okButton = UI.button('确定', 'primary');
+        var cancelButton = UI.button('取消', '');
         okButton.addEventListener('click', function () {
           UI.closeModal();
           resolve(true);

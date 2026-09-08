@@ -86,7 +86,7 @@
 
       var buttonRow = document.createElement('div');
       buttonRow.className = 'app-form-row';
-      var deriveButton = global.RtUI.button('派生为自定义模板', 'primary', '/static/svg/action-copy.svg');
+      var deriveButton = global.RtUI.button('派生为自定义模板', 'primary');
       buttonRow.appendChild(deriveButton);
       form.appendChild(buttonRow);
       deriveCard.body.appendChild(form);
@@ -100,7 +100,7 @@
       fileInput.accept = '.yaml,.yml';
       fileInput.className = 'app-field-input app-dict-file-input';
       uploadRow.appendChild(fileInput);
-      var uploadButton = global.RtUI.button('上传 YAML', '', '/static/svg/action-import.svg');
+      var uploadButton = global.RtUI.button('上传 YAML', '');
       uploadRow.appendChild(uploadButton);
       uploadCard.body.appendChild(uploadRow);
       container.appendChild(uploadCard.element);

@@ -1,21 +1,55 @@
-/* 用户管理页面：CSV 用户管理、导入、导出、批量测试/删除。
+/* 用户管理页面：用户管理、CSV 导入、选中导出、批量测试/删除。
  *
  * 表格严格遵循《数据表格需求描述》：
  *   默认用户名升序、每页 10 条、字段排序、字段筛选、
  *   多重筛选联动、筛选状态展示、分页数量切换。
  * 数据量通常为测试用户（数百以内），采用前端全量加载 +
  * 客户端筛选/排序/分页，避免后端列表接口改动。
+ *
+ * 用户数据规则：
+ *   1. 用户名是唯一键，保存时同名即覆盖；
+ *   2. 密码留空代表「不修改密码」（已存在用户保留原密码），新用户必须填密码；
+ *   3. 列表不展示密码列；
+ *   4. 导入为逐行容错：合法行全部导入，非法行返回明细；导入一律覆盖同名用户。
  */
 (function (global) {
   'use strict';
 
   var PROTOCOLS = ['pap', 'chap', 'mschap', 'mschapv2', 'eap-md5'];
 
+  /* CSV 单元格转义：含逗号/引号/换行时用双引号包裹，内部引号翻倍 */
+  function csvCell(value) {
+    var text = String(value === undefined || value === null ? '' : value);
+    if (text.indexOf(',') >= 0 || text.indexOf('"') >= 0 ||
+        text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0) {
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+    return text;
+  }
+
+  /* 把二维数据下载为 CSV 文件（带 BOM，保证 Excel 正确识别 UTF-8） */
+  function downloadCsv(filename, rows) {
+    var lines = rows.map(function (cells) {
+      return cells.map(csvCell).join(',');
+    });
+    var blob = new Blob(['\ufeff' + lines.join('\r\n')], {
+      type: 'text/csv;charset=utf-8'
+    });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   var Page = {
     title: '用户管理',
     desc: '测试用户的增删改查与 CSV 导入导出',
     render: function (container) {
-      // ---------- 顶部操作：新增 / 导入 / 导出 ----------
+      // ---------- 顶部操作：表单 + 保存 / 导入用户 ----------
       var toolbar = global.RtUI.card('用户操作');
       var actions = document.createElement('div');
       actions.className = 'app-form-row';
@@ -42,33 +76,55 @@
       global.RtUI.validate.bindInput(nameInput, {
         rules: [{ type: 'required' }], label: '用户名'
       });
-      global.RtUI.validate.bindInput(passInput, {
-        rules: [{ type: 'required' }], label: '密码'
-      });
+      // 密码不再强制必填：留空代表「不修改密码」，仅新用户要求必填（见保存逻辑）
       addForm.appendChild(nameInput);
       addForm.appendChild(passInput);
       addForm.appendChild(remarkInput);
 
-      var addButton = global.RtUI.button('新增用户', 'primary', '/static/svg/action-add.svg');
-      addButton.addEventListener('click', function (event) {
+      var allUsers = [];
+      var selectedUsernames = new Set();
+      var table;
+
+      function findUser(username) {
+        for (var i = 0; i < allUsers.length; i += 1) {
+          if (allUsers[i].username === username) {
+            return allUsers[i];
+          }
+        }
+        return null;
+      }
+
+      /* 保存：用户名唯一键，同名覆盖；密码留空则不修改原密码 */
+      var saveButton = global.RtUI.button('保存', 'primary');
+      saveButton.addEventListener('click', function (event) {
         var nameErr = global.RtUI.validate.checkInput(nameInput, nameInput._validateSchema);
-        var passErr = global.RtUI.validate.checkInput(passInput, passInput._validateSchema);
         nameInput.classList.toggle('is-invalid', !!nameErr);
-        passInput.classList.toggle('is-invalid', !!passErr);
-        if (nameErr || passErr) {
-          global.RtUI.toast(nameErr || passErr, 'warning');
-          (nameErr ? nameInput : passInput).focus();
+        if (nameErr) {
+          global.RtUI.toast(nameErr, 'warning');
+          nameInput.focus();
           return;
         }
+        var username = nameInput.value.trim();
+        var password = passInput.value;
+        // 仅新用户必须提供密码；已存在用户留空表示不修改密码
+        if (!findUser(username) && !password) {
+          passInput.classList.add('is-invalid');
+          global.RtUI.toast('新用户必须填写密码（已存在用户留空表示不修改）', 'warning');
+          passInput.focus();
+          return;
+        }
+        passInput.classList.remove('is-invalid');
         var payload = {
-          username: nameInput.value.trim(),
-          password: passInput.value,
+          username: username,
+          password: password,
           remark: remarkInput.value.trim(),
           enabled: true
         };
-        global.RtUI.withLoading(addButton, function () {
-          return global.RtApi.createUser(payload).then(function () {
-            global.RtUI.toast('用户已新增', 'success');
+        global.RtUI.withLoading(saveButton, function () {
+          return global.RtApi.createUser(payload).then(function (result) {
+            var updated = !!(result && result.updated);
+            global.RtUI.toast(updated ? '已更新用户：' + username : '已新增用户：' + username,
+              'success');
             nameInput.value = '';
             passInput.value = '';
             remarkInput.value = '';
@@ -78,56 +134,16 @@
           });
         }, event);
       });
-      addForm.appendChild(addButton);
+      addForm.appendChild(saveButton);
+
+      /* 导入用户：弹窗内完成 下载模板 / 选择文件 / 预览文本 / 提交导入 */
+      var importUserButton = global.RtUI.button('导入用户', '');
+      importUserButton.addEventListener('click', function () {
+        openImportModal();
+      });
+      addForm.appendChild(importUserButton);
+
       actions.appendChild(addForm);
-
-      var importRow = document.createElement('div');
-      importRow.className = 'app-form-row';
-
-      var fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = '.csv';
-      fileInput.className = 'app-field-input app-user-file-input';
-      importRow.appendChild(fileInput);
-
-      var overwriteRow = document.createElement('div');
-      overwriteRow.className = 'app-checkbox-row';
-      var overwriteCheck = document.createElement('input');
-      overwriteCheck.type = 'checkbox';
-      overwriteCheck.className = 'app-user-overwrite-checkbox';
-      var overwriteLabel = document.createElement('span');
-      overwriteLabel.className = 'app-checkbox-label';
-      overwriteLabel.textContent = '覆盖已有用户';
-      overwriteRow.appendChild(overwriteCheck);
-      overwriteRow.appendChild(overwriteLabel);
-      importRow.appendChild(overwriteRow);
-
-      var importButton = global.RtUI.button('导入 CSV', '', '/static/svg/action-import.svg');
-      importButton.addEventListener('click', function (event) {
-        if (!fileInput.files || fileInput.files.length === 0) {
-          global.RtUI.toast('请先选择 CSV 文件', 'warning');
-          return;
-        }
-        global.RtUI.withLoading(importButton, function () {
-          return global.RtApi.importUsers(fileInput.files[0], overwriteCheck.checked)
-            .then(function (result) {
-              global.RtUI.toast('导入完成：新增 ' + result.added +
-                '，更新 ' + result.updated + '，跳过 ' + result.skipped, 'success');
-              fileInput.value = '';
-              return load();
-            });
-        }, event);
-      });
-      importRow.appendChild(importButton);
-
-      var exportButton = global.RtUI.button('导出 CSV', '', '/static/svg/action-export.svg');
-      exportButton.addEventListener('click', function (event) {
-        global.RtDebug.click(exportButton, event, { result: 'ok', message: 'export' });
-        window.location.href = '/api/users/export';
-      });
-      importRow.appendChild(exportButton);
-
-      actions.appendChild(importRow);
       toolbar.body.appendChild(actions);
       container.appendChild(toolbar.element);
 
@@ -181,24 +197,23 @@
       batchBar.appendChild(protoLabel);
       batchBar.appendChild(protoSelect);
 
-      var batchTestBtn = global.RtUI.button('批量测试', '', '/static/svg/action-test.svg');
-      var batchDeleteBtn = global.RtUI.button('批量删除', 'danger', '/static/svg/action-delete.svg');
+      var batchTestBtn = global.RtUI.button('批量测试', '');
+      var batchDeleteBtn = global.RtUI.button('批量删除', 'danger');
+      var exportCsvBtn = global.RtUI.button('导出 CSV', '');
       batchBar.appendChild(batchTestBtn);
       batchBar.appendChild(batchDeleteBtn);
+      batchBar.appendChild(exportCsvBtn);
       listHost.appendChild(batchBar);
 
       var tableHost = document.createElement('div');
       listHost.appendChild(tableHost);
-
-      var allUsers = [];
-      var selectedUsernames = new Set();
-      var table;
 
       function updateBatchBar() {
         countText.textContent = '已选 ' + selectedUsernames.size + ' 项';
         var hasSel = selectedUsernames.size > 0;
         batchTestBtn.disabled = !hasSel;
         batchDeleteBtn.disabled = !hasSel;
+        exportCsvBtn.disabled = !hasSel;
         var pageUsernames = (table && table.rows) ? table.rows.map(function (r) {
           return r.username;
         }) : [];
@@ -285,13 +300,6 @@
         return options;
       }
 
-      function badge(text, kind) {
-        var span = document.createElement('span');
-        span.className = 'app-badge app-badge-' + (kind || 'muted');
-        span.textContent = text;
-        return span;
-      }
-
       function showBatchTestResult(results) {
         var host = document.createElement('div');
         var wrap = document.createElement('div');
@@ -322,6 +330,142 @@
         wrap.appendChild(tableEl);
         host.appendChild(wrap);
         global.RtUI.modal('批量测试结果 - ' + results.length + ' 个用户', [], [], host);
+      }
+
+      /* 导入失败明细表 */
+      function showImportFailures(failures) {
+        var host = document.createElement('div');
+        var wrap = document.createElement('div');
+        wrap.className = 'app-table-wrap';
+        var tableEl = document.createElement('table');
+        tableEl.className = 'app-table';
+        var thead = document.createElement('thead');
+        var headRow = document.createElement('tr');
+        ['行号', '用户名', '失败原因'].forEach(function (text) {
+          var th = document.createElement('th');
+          th.textContent = text;
+          headRow.appendChild(th);
+        });
+        thead.appendChild(headRow);
+        var tbody = document.createElement('tbody');
+        failures.forEach(function (item) {
+          var tr = document.createElement('tr');
+          [item.line || '-', item.username || '-', item.reason || '-'].forEach(function (value) {
+            var td = document.createElement('td');
+            td.textContent = String(value);
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        tableEl.appendChild(thead);
+        tableEl.appendChild(tbody);
+        wrap.appendChild(tableEl);
+        host.appendChild(wrap);
+        global.RtUI.modal('导入失败明细 - ' + failures.length + ' 条', [], [], host);
+      }
+
+      /* 导入用户弹窗：规范提示 + 文本框 + 下载模板 + 选择文件 + 导入用户 */
+      function openImportModal() {
+        var host = document.createElement('div');
+        host.className = 'app-form';
+
+        var tip = document.createElement('div');
+        tip.className = 'app-field-hint app-user-import-tip';
+        tip.textContent = '导入文件为 CSV 格式，首行为表头：username,password,enabled,remark。'
+          + 'username 必填，是唯一键，同名即覆盖；'
+          + 'password 新用户必填，已存在用户留空表示不修改原密码；'
+          + 'enabled 只允许 true / false，留空按 true 处理；remark 可为空。'
+          + '以 # 开头的行与空行会被忽略，文件需为 UTF-8 编码。'
+          + '合法行全部导入，非法行会跳过并在导入结果中逐行列出原因。';
+        host.appendChild(tip);
+
+        var area = document.createElement('textarea');
+        area.className = 'app-field-textarea app-user-import-textarea';
+        area.rows = 10;
+        area.placeholder = '可粘贴 CSV 内容，或点击「选择文件」读取 .csv 文件';
+        host.appendChild(area);
+
+        var fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.csv';
+        fileInput.hidden = true;
+        host.appendChild(fileInput);
+
+        var pickRow = document.createElement('div');
+        pickRow.className = 'app-form-row';
+        var downloadBtn = global.RtUI.button('导入文件下载', '');
+        var pickBtn = global.RtUI.button('选择文件', '');
+        pickRow.appendChild(downloadBtn);
+        pickRow.appendChild(pickBtn);
+        host.appendChild(pickRow);
+
+        var importBtn = global.RtUI.button('导入用户', 'primary');
+        var closeBtn = global.RtUI.button('关闭', '');
+        closeBtn.addEventListener('click', function () {
+          global.RtUI.closeModal();
+        });
+
+        downloadBtn.addEventListener('click', function () {
+          window.location.href = '/api/users/template';
+        });
+
+        pickBtn.addEventListener('click', function () {
+          fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function () {
+          var file = fileInput.files && fileInput.files[0];
+          if (!file) {
+            return;
+          }
+          var name = (file.name || '').toLowerCase();
+          // 只允许 CSV：在 accept 之外再校验一次，避免用户手动绕过文件类型过滤
+          if (name.slice(-4) !== '.csv') {
+            global.RtUI.toast('只能选择 CSV 文件', 'warning');
+            fileInput.value = '';
+            return;
+          }
+          var reader = new FileReader();
+          reader.onload = function () {
+            area.value = String(reader.result || '');
+            global.RtUI.toast('已读取文件：' + file.name, 'success');
+          };
+          reader.onerror = function () {
+            global.RtUI.toast('文件读取失败', 'error');
+          };
+          reader.readAsText(file, 'utf-8');
+        });
+
+        importBtn.addEventListener('click', function (event) {
+          if (!area.value.trim()) {
+            global.RtUI.toast('请先选择 CSV 文件或粘贴 CSV 内容', 'warning');
+            return;
+          }
+          global.RtUI.withLoading(importBtn, function () {
+            return global.RtApi.importUsers(area.value).then(function (result) {
+              if (!result || result.success === false) {
+                global.RtUI.toast((result && result.message) || '导入失败', 'error');
+                return null;
+              }
+              var added = result.added || 0;
+              var updated = result.updated || 0;
+              var failed = result.failed || 0;
+              global.RtUI.toast('导入完成：成功 ' + (added + updated) +
+                '（新增 ' + added + '，覆盖 ' + updated + '），失败 ' + failed,
+                failed > 0 ? 'warning' : 'success');
+              var failures = result.failures || [];
+              global.RtUI.closeModal();
+              return load().then(function () {
+                if (failed > 0 && failures.length) {
+                  showImportFailures(failures);
+                }
+                return null;
+              });
+            });
+          }, event);
+        });
+
+        global.RtUI.modal('导入用户', [], [importBtn, closeBtn], host);
       }
 
       table = global.RtTable.create({
@@ -356,12 +500,6 @@
           },
           { key: 'username', label: '用户名' },
           {
-            key: 'password',
-            label: '密码',
-            filterable: false,
-            render: function (row) { return row.password || ''; }
-          },
-          {
             key: 'remark',
             label: '备注',
             render: function (row) { return row.remark || ''; }
@@ -383,6 +521,22 @@
                 global.RtUI.toast('已跳转至 RADIUS Server 页面，请选择服务器并点击「Radius 用户测试」', 'info');
                 window.location.hash = '#/server';
               });
+
+              var edit = document.createElement('button');
+              edit.className = 'app-button app-button-sm';
+              edit.type = 'button';
+              edit.textContent = '修改';
+              edit.style.marginRight = '8px';
+              edit.addEventListener('click', function () {
+                // 只回填用户名与备注；密码不回填，留空表示不修改
+                nameInput.value = row.username || '';
+                remarkInput.value = row.remark || '';
+                passInput.value = '';
+                nameInput.classList.remove('is-invalid');
+                passInput.classList.remove('is-invalid');
+                global.RtUI.toast('已载入「' + row.username + '」，修改后点击保存（密码留空则不修改）', 'info');
+              });
+
               var del = document.createElement('button');
               del.className = 'app-button app-button-danger app-button-sm';
               del.type = 'button';
@@ -401,6 +555,7 @@
                   });
               });
               wrapOps.appendChild(test);
+              wrapOps.appendChild(edit);
               wrapOps.appendChild(del);
               return wrapOps;
             }
@@ -415,6 +570,10 @@
         rowClassName: function (row) {
           return selectedUsernames.has(row.username) ? 'is-selected' : '';
         },
+        // 首次渲染与翻页/排序/筛选后都同步批量条：无选中时批量按钮必须禁用
+        onRendered: function () {
+          updateBatchBar();
+        },
         onRowClick: function (row, index, event) {
           // 点击行内的复选框/按钮/链接时不触发行选择
           if (event && event.target && event.target.closest
@@ -428,6 +587,9 @@
           table.reload();
         }
       });
+
+      // 初始无选中：批量测试 / 批量删除 / 导出 CSV 均置灰
+      updateBatchBar();
 
       selectAll.addEventListener('change', function () {
         var pageUsernames = (table.rows || []).map(function (r) { return r.username; });
@@ -481,6 +643,29 @@
               });
             }, event);
           });
+      });
+
+      /* 导出选中用户：密码字段置空，用于不含密数据的报表/迁移 */
+      exportCsvBtn.addEventListener('click', function (event) {
+        if (selectedUsernames.size === 0) {
+          global.RtUI.toast('请先勾选要导出的用户', 'warning');
+          return;
+        }
+        // 按用户列表原始顺序导出，避免勾选顺序导致结果不稳定
+        var rows = allUsers.filter(function (u) {
+          return selectedUsernames.has(u.username);
+        });
+        var body = rows.map(function (u) {
+          return [u.username, '', u.enabled === false ? 'false' : 'true', u.remark || ''];
+        });
+        downloadCsv('users-selected.csv',
+          [['username', 'password', 'enabled', 'remark']].concat(body));
+        global.RtUI.toast('已导出 ' + rows.length + ' 个用户（密码已置空）', 'success');
+        if (global.RtDebug) {
+          global.RtDebug.click(exportCsvBtn, event, {
+            result: 'ok', message: 'export-selected:' + rows.length
+          });
+        }
       });
 
       global.RtUI.bindRefresh(load);

@@ -161,7 +161,7 @@
 
       var saveRow = document.createElement('div');
       saveRow.className = 'app-form-row';
-      var saveButton = global.RtUI.button('保存配置', 'primary', '/static/svg/action-add.svg');
+      var saveButton = global.RtUI.button('保存配置', 'primary');
       saveButton.classList.add('app-config-save-button');
       saveRow.appendChild(saveButton);
       container.appendChild(saveRow);

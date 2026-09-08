@@ -113,10 +113,16 @@
     deleteUser: function (username) {
       return this.del('/api/users/' + encodeURIComponent(username));
     },
-    importUsers: function (file, overwrite) {
+    /* 导入用户 CSV。
+       参数可以是 File/Blob，也可以是 CSV 文本（内部自动包装为 import.csv）。
+       导入规则由后端统一处理：用户名唯一键、一律覆盖、密码留空代表不修改。 */
+    importUsers: function (fileOrText) {
+      var file = fileOrText;
+      if (typeof fileOrText === 'string') {
+        file = new File([fileOrText], 'import.csv', { type: 'text/csv' });
+      }
       var form = new FormData();
       form.append('file', file);
-      form.append('overwrite', overwrite ? 'true' : 'false');
       return this.upload('/api/users/import', form);
     },
     listTemplates: function () {

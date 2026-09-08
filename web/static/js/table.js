@@ -35,6 +35,8 @@
     this.onRowClick = config.onRowClick;
     /* rowClassName(row, index)：返回附加到行 tr 的自定义类名（如选中高亮） */
     this.rowClassName = config.rowClassName;
+    /* onRendered()：每次表体渲染完成后回调，供外部同步「全选本页」等联动状态 */
+    this.onRendered = config.onRendered;
     this.defaultSortField = config.defaultSortField || this.columns[0].key;
     this.pageSize = 10;
     this.page = 1;
@@ -375,7 +377,15 @@
     return Promise.all(requests);
   };
 
+  /* 渲染表体后统一回调，翻页/排序/筛选后外部联动状态才不会残留 */
   Table.prototype._renderBody = function () {
+    this._renderRows();
+    if (this.onRendered) {
+      this.onRendered();
+    }
+  };
+
+  Table.prototype._renderRows = function () {
     var self = this;
     this.tbody.innerHTML = '';
     if (this.rows.length === 0) {

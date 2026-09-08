@@ -141,9 +141,9 @@
 
       var userActions = document.createElement('div');
       userActions.className = 'app-user-list-actions';
-      var selectAllBtn = global.RtUI.button('全选', 'ghost', null, 'sm');
-      var selectNoneBtn = global.RtUI.button('全不选', 'ghost', null, 'sm');
-      var selectEnabledBtn = global.RtUI.button('仅启用', 'ghost', null, 'sm');
+      var selectAllBtn = global.RtUI.button('全选', 'ghost', 'sm');
+      var selectNoneBtn = global.RtUI.button('全不选', 'ghost', 'sm');
+      var selectEnabledBtn = global.RtUI.button('仅启用', 'ghost', 'sm');
       userActions.appendChild(selectAllBtn);
       userActions.appendChild(selectNoneBtn);
       userActions.appendChild(selectEnabledBtn);
@@ -172,9 +172,9 @@
 
       var buttonRow = document.createElement('div');
       buttonRow.className = 'app-form-row';
-      var startButton = global.RtUI.button('开始测试', 'primary', '/static/svg/action-start.svg');
+      var startButton = global.RtUI.button('开始测试', 'primary');
       startButton.classList.add('app-perf-start-button');
-      var stopButton = global.RtUI.button('停止测试', 'danger', '/static/svg/action-stop.svg');
+      var stopButton = global.RtUI.button('停止测试', 'danger');
       stopButton.classList.add('app-perf-stop-button');
       stopButton.disabled = true;
       buttonRow.appendChild(startButton);

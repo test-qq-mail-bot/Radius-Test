@@ -74,7 +74,7 @@
         var hint = document.createElement('div');
         hint.className = 'app-empty-hint';
         hint.textContent = '前往「性能测试」页面发起一次 RADIUS 认证测试';
-        var btn = global.RtUI.button('前往性能测试', 'primary', null);
+        var btn = global.RtUI.button('前往性能测试', 'primary');
         btn.addEventListener('click', function () {
           location.hash = '#/perf';
         });
