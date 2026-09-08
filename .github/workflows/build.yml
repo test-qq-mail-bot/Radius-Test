@@ -122,12 +122,13 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
+          RUNNER_OS: ${{ runner.os }}
         run: |
-          mkdir -p out
-          if [ -f dist/Radius-Test.exe ]; then
+          # 每个平台只产出对应产物，避免 Windows 把 .exe 误判为 dist/Radius-Test 而多复制一份 linux-x64（导致 Release 出现重复文件）。
+          rm -rf out && mkdir -p out
+          if [ "$RUNNER_OS" = "Windows" ]; then
             cp dist/Radius-Test.exe "out/Radius-Test-${VERSION}-windows-x64.exe"
-          fi
-          if [ -f dist/Radius-Test ]; then
+          else
             cp dist/Radius-Test "out/Radius-Test-${VERSION}-linux-x64"
             chmod +x "out/Radius-Test-${VERSION}-linux-x64"
           fi
@@ -171,6 +172,9 @@ jobs:
             版本号取自 src/version.py 的 SOFTWARE_VERSION。
           draft: false
           prerelease: false
-          files: artifacts/*
+          # 仅发布两个预期产物，避免 merge-multiple 合并时残留/重名文件被误纳入。
+          files: |
+            artifacts/Radius-Test-${{ needs.prepare.outputs.version }}-windows-x64.exe
+            artifacts/Radius-Test-${{ needs.prepare.outputs.version }}-linux-x64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
