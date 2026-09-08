@@ -99,6 +99,22 @@ class RadiusClient:
         """解析目标地址，主机名解析失败时原样返回。"""
         return net_util.resolve_host(str(server.get("server_address", "")))
 
+    @staticmethod
+    def _auth_effective(server: dict) -> dict:
+        """认证使用专用 RADIUS 认证服务器；缺省回退通用 server_address / shared_secret。"""
+        eff = dict(server)
+        eff["server_address"] = server.get("authentication_server_address") or server.get("server_address") or ""
+        eff["shared_secret"] = server.get("authentication_secret") or server.get("shared_secret") or ""
+        return eff
+
+    @staticmethod
+    def _acct_effective(server: dict) -> dict:
+        """计费使用专用 RADIUS 计费服务器；缺省回退通用 server_address / shared_secret。"""
+        eff = dict(server)
+        eff["server_address"] = server.get("accounting_server_address") or server.get("server_address") or ""
+        eff["shared_secret"] = server.get("accounting_secret") or server.get("shared_secret") or ""
+        return eff
+
     def _base_attributes(self, server: dict, username: str) -> list:
         """
         构造认证请求的基础属性。
@@ -174,9 +190,11 @@ class RadiusClient:
         if protocol not in ("pap", "chap", "mschap", "mschapv2", "eap-md5"):
             raise RadiusError("不支持的认证协议", "协议=%s" % protocol)
 
+        # 路由到专用 RADIUS 认证服务器（缺省回退通用 server_address / shared_secret）
+        effective = self._auth_effective(server)
         request_auth = auth_mod.new_request_authenticator()
-        secret = self._secret(server)
-        attributes = self._base_attributes(server, username)
+        secret = self._secret(effective)
+        attributes = self._base_attributes(effective, username)
 
         if protocol == "pap":
             attributes.append((codes.ATTR_USER_PASSWORD,
@@ -218,12 +236,12 @@ class RadiusClient:
         result.request_packet = request_packet
 
         if protocol == "eap-md5":
-            return await self._run_eap_md5(server, username, password, request_auth,
+            return await self._run_eap_md5(effective, username, password, request_auth,
                                            secret, attributes, result, started)
 
-        port = int(server.get("authentication_port") or 1812)
+        port = int(effective.get("authentication_port") or 1812)
         try:
-            response = await self._send(server, packet, port)
+            response = await self._send(effective, packet, port)
         except RadiusTimeout as exc:
             result.response_time_ms = (time.perf_counter() - started) * 1000
             result.error = "超时；%s" % exc.detail
@@ -342,10 +360,12 @@ class RadiusClient:
         """
         started = time.perf_counter()
         result = RadiusResult()
+        # 路由到专用 RADIUS 计费服务器（缺省回退通用 server_address / shared_secret）
+        effective = self._acct_effective(server)
         request_auth = auth_mod.new_request_authenticator()
-        secret = self._secret(server)
+        secret = self._secret(effective)
         session_id = session_id or uuid_util.new_radius_session_id()
-        attributes = self._base_attributes(server, username)
+        attributes = self._base_attributes(effective, username)
         attributes.append((codes.ATTR_ACCT_STATUS_TYPE, acct_status_type.to_bytes(4, "big")))
         attributes.append((codes.ATTR_ACCT_SESSION_ID, session_id.encode("utf-8")))
         attributes.append((ATTR_ACCT_AUTHENTIC, (1).to_bytes(4, "big")))
@@ -357,9 +377,9 @@ class RadiusClient:
             attributes.append((ATTR_ACCT_OUTPUT_PACKETS, (1).to_bytes(4, "big")))
         packet = self._build_packet(codes.ACCOUNTING_REQUEST, request_auth, attributes, secret)
         result.request_packet = decode_packet(packet)
-        port = int(server.get("accounting_port") or 1813)
+        port = int(effective.get("accounting_port") or 1813)
         try:
-            response = await self._send(server, packet, port)
+            response = await self._send(effective, packet, port)
         except RadiusTimeout as exc:
             result.response_time_ms = (time.perf_counter() - started) * 1000
             result.error = "超时；%s" % exc.detail

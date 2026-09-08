@@ -42,6 +42,31 @@ def _validate_server(server: dict) -> None:
         raise ValidationError("Server 名称不能为空")
     if not is_valid_host(server.get("server_address")):
         raise ValidationError("Server 地址非法", "值=%s" % server.get("server_address"))
+    if not str(server.get("shared_secret") or ""):
+        raise ValidationError("共享密钥不能为空")
+    # RADIUS 认证服务器 / 认证密钥（必填）
+    auth_server = str(server.get("authentication_server_address") or "").strip()
+    if not auth_server:
+        raise ValidationError("RADIUS 认证服务器不能为空")
+    if not is_valid_host(auth_server):
+        raise ValidationError("RADIUS 认证服务器地址非法", "值=%s" % auth_server)
+    if not str(server.get("authentication_secret") or ""):
+        raise ValidationError("认证密钥不能为空")
+    # RADIUS 计费服务器 / 计费密钥（必填）
+    acct_server = str(server.get("accounting_server_address") or "").strip()
+    if not acct_server:
+        raise ValidationError("RADIUS 计费服务器不能为空")
+    if not is_valid_host(acct_server):
+        raise ValidationError("RADIUS 计费服务器地址非法", "值=%s" % acct_server)
+    if not str(server.get("accounting_secret") or ""):
+        raise ValidationError("计费密钥不能为空")
+    # 计费间隔：非负整数，默认 0（0 表示不发送 Interim-Update）
+    try:
+        acct_interval = int(server.get("accounting_interval") or 0)
+    except (TypeError, ValueError):
+        raise ValidationError("计费间隔必须为整数", "值=%s" % server.get("accounting_interval"))
+    if acct_interval < 0:
+        raise ValidationError("计费间隔不能为负数", "值=%s" % acct_interval)
     if not is_valid_port(server.get("authentication_port")):
         raise ValidationError("认证端口非法", "值=%s" % server.get("authentication_port"))
     if not is_valid_port(server.get("accounting_port")):
@@ -52,14 +77,10 @@ def _validate_server(server: dict) -> None:
     source = str(server.get("source_address") or "").strip()
     if source and not is_valid_host(source):
         raise ValidationError("报文源地址非法", "值=%s" % source)
-    if not str(server.get("shared_secret") or ""):
-        raise ValidationError("共享密钥不能为空")
     if not is_valid_timeout(server.get("timeout")):
         raise ValidationError("超时时间非法", "值=%s" % server.get("timeout"))
     if not is_valid_positive_int(server.get("retry_count"), 10):
         raise ValidationError("重试次数非法", "值=%s" % server.get("retry_count"))
-    if str(server.get("protocol") or "") not in defaults.SUPPORTED_PROTOCOLS:
-        raise ValidationError("认证协议非法", "值=%s" % server.get("protocol"))
 
 
 @router.get("")

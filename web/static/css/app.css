@@ -639,6 +639,12 @@ code,
   flex-direction: column;
   gap: 6px;
   min-width: 220px;
+  flex: 0 0 auto;
+}
+
+/* 纵向 .app-form 内字段保持自然高度（避免 flex-basis 被当成高度撑高导致空白）；
+   仅横向 .app-form-row 内的字段等宽伸展。 */
+.app-form-row > .app-field {
   flex: 1 1 220px;
 }
 

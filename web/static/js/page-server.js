@@ -28,22 +28,24 @@
     return box;
   }
 
-  function input(name, value, type, autocomplete) {
+  function input(name, value, type, autocomplete, id) {
     var element = document.createElement('input');
     element.className = 'app-field-input';
     element.name = name;
     element.type = type || 'text';
     element.value = value === undefined || value === null ? '' : String(value);
+    if (id) { element.id = id; }
     if (autocomplete) {
       element.setAttribute('autocomplete', autocomplete);
     }
     return element;
   }
 
-  function select(name, options, value) {
+  function select(name, options, value, id) {
     var element = document.createElement('select');
     element.className = 'app-field-select';
     element.name = name;
+    if (id) { element.id = id; }
     options.forEach(function (option) {
       var node = document.createElement('option');
       node.value = option;
@@ -64,8 +66,8 @@
       }
       if (element.type === 'checkbox') {
         data[element.name] = element.checked;
-      } else if (element.name === 'authentication_port' || element.name === 'accounting_port') {
-        data[element.name] = parseInt(element.value, 10);
+      } else if (element.name === 'authentication_port' || element.name === 'accounting_port' || element.name === 'accounting_interval') {
+        data[element.name] = parseInt(element.value, 10) || 0;
       } else if (element.name === 'timeout') {
         data[element.name] = parseFloat(element.value);
       } else if (element.name === 'retry_count') {
@@ -77,45 +79,78 @@
     return data;
   }
 
+  function safeId(s) {
+    return String(s == null ? '' : s).replace(/[^A-Za-z0-9_-]/g, '_') || 'x';
+  }
+  var _uidSeq = {};
+  function uid(base) {
+    base = String(base).replace(/[^A-Za-z0-9_-]/g, '_');
+    if (!base || /^[0-9]/.test(base)) base = 'e' + base;
+    var n = 1, id = base;
+    while (document.getElementById(id)) { id = base + '-' + (++n); }
+    return id;
+  }
+
   var Page = {
     title: 'RADIUS Server',
     desc: 'Server 配置与连通性测试',
     render: function (container) {
       var formCard = global.RtUI.card('新增 RADIUS Server');
+      formCard.element.id = uid('app-server-form-card');
       var form = document.createElement('form');
       form.className = 'app-form';
+      form.id = uid('app-server-form');
       form.setAttribute('autocomplete', 'off');
       var row1 = document.createElement('div');
       row1.className = 'app-form-row';
-      row1.appendChild(field('名称', input('name', ''), null, [{ type: 'required' }]));
-      row1.appendChild(field('服务器地址', input('server_address', ''), null, [{ type: 'host' }]));
-      row1.appendChild(field('共享密钥', input('shared_secret', '', 'text', 'new-password'), null, [{ type: 'required' }]));
+      row1.id = uid('app-server-row-1');
+      row1.appendChild(field('名称', input('name', '', 'text', 'off', 'app-server-name'), null, [{ type: 'required' }]));
+      row1.appendChild(field('服务器地址', input('server_address', '', 'text', 'off', 'app-server-address'), null, [{ type: 'host' }]));
+      row1.appendChild(field('共享密钥', input('shared_secret', '', 'text', 'new-password', 'app-server-secret'), null, [{ type: 'required' }]));
       form.appendChild(row1);
 
       var row2 = document.createElement('div');
       row2.className = 'app-form-row';
-      row2.appendChild(field('认证端口', input('authentication_port', 1812, 'number'),
+      row2.id = uid('app-server-row-2');
+      row2.appendChild(field('认证端口', input('authentication_port', 1812, 'number', null, 'app-server-auth-port'),
         '默认 1812', [{ type: 'port' }]));
-      row2.appendChild(field('计费端口', input('accounting_port', 1813, 'number'),
-        '默认 1813', [{ type: 'port' }]));
-      row2.appendChild(field('NAS IP 地址', input('nas_ip_address', ''),
-        '可为空，但非空时必须是 IP 或域名', [{ type: 'host', optional: true }]));
-      row2.appendChild(field('认证协议', select('protocol', PROTOCOLS, 'pap')));
+      row2.appendChild(field('RADIUS 认证服务器', input('authentication_server_address', '', 'text', 'off', 'app-server-auth-server'),
+        '必填；认证报文发往的服务器地址', [{ type: 'host' }]));
+      row2.appendChild(field('认证密钥', input('authentication_secret', '', 'text', 'new-password', 'app-server-auth-secret'),
+        '必填；与认证服务器约定', [{ type: 'required' }]));
       form.appendChild(row2);
 
       var row3 = document.createElement('div');
       row3.className = 'app-form-row';
-      row3.appendChild(field('超时时间（秒）', input('timeout', 5, 'number'),
+      row3.id = uid('app-server-row-3');
+      row3.appendChild(field('计费端口', input('accounting_port', 1813, 'number', null, 'app-server-acct-port'),
+        '默认 1813', [{ type: 'port' }]));
+      row3.appendChild(field('RADIUS 计费服务器', input('accounting_server_address', '', 'text', 'off', 'app-server-acct-server'),
+        '必填；计费报文发往的服务器地址', [{ type: 'host' }]));
+      row3.appendChild(field('计费密钥', input('accounting_secret', '', 'text', 'new-password', 'app-server-acct-secret'),
+        '必填；与计费服务器约定', [{ type: 'required' }]));
+      row3.appendChild(field('计费间隔（秒）', input('accounting_interval', 0, 'number', null, 'app-server-acct-interval'),
+        '0 = 不发送 Interim-Update；>0 按间隔发送', [{ type: 'integer', min: 0 }]));
+      form.appendChild(row3);
+
+      var row4 = document.createElement('div');
+      row4.className = 'app-form-row';
+      row4.id = uid('app-server-row-4');
+      row4.appendChild(field('NAS IP 地址', input('nas_ip_address', '', 'text', 'off', 'app-server-nas'),
+        '可为空，但非空时必须是 IP 或域名', [{ type: 'host', optional: true }]));
+      row4.appendChild(field('超时时间（秒）', input('timeout', 5, 'number', null, 'app-server-timeout'),
         '0.1 ~ 120', [{ type: 'positiveNumber', min: 0.1, max: 120 }]));
-      row3.appendChild(field('重试次数', input('retry_count', 3, 'number'),
+      row4.appendChild(field('重试次数', input('retry_count', 3, 'number', null, 'app-server-retry'),
         '1 ~ 10', [{ type: 'positiveNumber', min: 1, max: 10 }]));
       var enabledBox = document.createElement('div');
       enabledBox.className = 'app-field';
+      enabledBox.id = uid('app-server-enabled-field');
       var checkRow = document.createElement('div');
       checkRow.className = 'app-checkbox-row';
       var check = document.createElement('input');
       check.type = 'checkbox';
       check.name = 'enabled';
+      check.id = uid('app-server-enabled');
       check.checked = true;
       var checkLabel = document.createElement('span');
       checkLabel.className = 'app-checkbox-label';
@@ -123,20 +158,21 @@
       checkRow.appendChild(check);
       checkRow.appendChild(checkLabel);
       enabledBox.appendChild(checkRow);
-      row3.appendChild(enabledBox);
-      form.appendChild(row3);
+      row4.appendChild(enabledBox);
+      form.appendChild(row4);
 
-      var row4 = document.createElement('div');
-      row4.className = 'app-form-row';
-      var sourceAddr = input('source_address', '', 'text', 'off');
+      var row5 = document.createElement('div');
+      row5.className = 'app-form-row';
+      row5.id = uid('app-server-row-5');
+      var sourceAddr = input('source_address', '', 'text', 'off', 'app-server-source');
       var sourceList = document.createElement('datalist');
       sourceList.id = 'app-server-source-addresses';
       sourceAddr.setAttribute('list', sourceList.id);
-      row4.appendChild(field('报文源地址', sourceAddr,
+      row5.appendChild(field('报文源地址', sourceAddr,
         '可留空；指定则 RADIUS 报文从该地址发出（须与目标地址同地址族）',
         [{ type: 'host', optional: true }]));
-      row4.appendChild(sourceList);
-      form.appendChild(row4);
+      row5.appendChild(sourceList);
+      form.appendChild(row5);
 
       global.RtApi.listLocalAddresses().then(function (data) {
         (data.addresses || []).forEach(function (addr) {
@@ -150,6 +186,7 @@
       var submitRow = document.createElement('div');
       submitRow.className = 'app-form-row';
       var submit = global.RtUI.button('新增', 'primary');
+      submit.id = uid('app-server-submit');
 
       /* 按钮内部节点：loading 结束后 withLoading 会用 innerHTML 重建按钮内容，
          因此不能缓存节点引用，必须每次现取并判空。 */
@@ -158,6 +195,7 @@
       }
 
       var cancelEdit = global.RtUI.button('取消', '');
+      cancelEdit.id = uid('app-server-cancel');
       cancelEdit.hidden = true;
       cancelEdit.addEventListener('click', function () {
         exitEditMode();
@@ -223,6 +261,7 @@
 
       var editingName = null;
       var formCardTitle = formCard.element.querySelector('.app-card-title');
+      formCardTitle.id = uid('app-server-form-title');
 
       function findField(name) {
         return form.querySelector('[name="' + name + '"]');
@@ -230,7 +269,6 @@
 
       function enterEditMode(server) {
         editingName = server.name;
-        formCardTitle.textContent = '修改 RADIUS Server';
         var textNode = submitTextNode();
         if (textNode) {
           textNode.textContent = '保存';
@@ -238,15 +276,18 @@
         findField('name').value = server.name;
         findField('server_address').value = server.server_address;
         findField('shared_secret').value = server.shared_secret || '';
+        findField('authentication_server_address').value = server.authentication_server_address || '';
+        findField('authentication_secret').value = server.authentication_secret || '';
         findField('authentication_port').value = server.authentication_port;
+        findField('accounting_server_address').value = server.accounting_server_address || '';
+        findField('accounting_secret').value = server.accounting_secret || '';
         findField('accounting_port').value = server.accounting_port;
+        findField('accounting_interval').value = server.accounting_interval;
         findField('nas_ip_address').value = server.nas_ip_address || '';
         findField('source_address').value = server.source_address || '';
-        findField('protocol').value = server.protocol;
         findField('timeout').value = server.timeout;
         findField('retry_count').value = server.retry_count;
         findField('enabled').checked = !!server.enabled;
-        findField('name').readOnly = true;
         cancelEdit.hidden = false;
         validateBoxes.forEach(function (box) { global.RtUI.validate.clearError(box); });
         formCard.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -254,16 +295,14 @@
 
       function exitEditMode() {
         editingName = null;
-        formCardTitle.textContent = '新增 RADIUS Server';
         var textNode = submitTextNode();
         if (textNode) {
           textNode.textContent = '新增';
         }
         form.reset();
-        findField('name').readOnly = false;
         findField('authentication_port').value = 1812;
         findField('accounting_port').value = 1813;
-        findField('protocol').value = 'pap';
+        findField('accounting_interval').value = 0;
         findField('timeout').value = 5;
         findField('retry_count').value = 3;
         findField('enabled').checked = true;
@@ -291,16 +330,17 @@
       function openUserTestModal(server, triggerEvent) {
         var body = document.createElement('div');
         body.className = 'app-form';
+        body.id = uid('app-usertest-body');
 
-        var username = input('auth-username', '', 'text', 'off');
-        var password = input('auth-password', '', 'text', 'new-password');
+        var username = input('auth-username', '', 'text', 'off', uid('app-usertest-username'));
+        var password = input('auth-password', '', 'text', 'new-password', uid('app-usertest-password'));
 
         var protoField = document.createElement('div');
         protoField.className = 'app-field';
         var protoLabel = document.createElement('label');
         protoLabel.className = 'app-field-label';
         protoLabel.textContent = '认证协议';
-        var protoSelect = select('auth-protocol', PROTOCOLS, server.protocol);
+        var protoSelect = select('auth-protocol', PROTOCOLS, server.protocol || 'pap', uid('app-usertest-protocol'));
         protoField.appendChild(protoLabel);
         protoField.appendChild(protoSelect);
 
@@ -316,7 +356,9 @@
         resultWrap.appendChild(resultBox);
 
         var testBtn = global.RtUI.button('开始测试', 'primary');
+        testBtn.id = uid('app-usertest-submit');
         var cancelBtn = global.RtUI.button('取消', '');
+        cancelBtn.id = uid('app-usertest-cancel');
         cancelBtn.addEventListener('click', function () {
           global.RtUI.closeModal();
         });
@@ -390,15 +432,20 @@
           }
           servers.forEach(function (server) {
             var card = global.RtUI.card(server.name + (server.enabled ? '' : '（已停用）'));
+            card.element.id = uid('app-server-item-' + safeId(server.name));
             var info = document.createElement('div');
             info.className = 'app-detail-list';
             [
               ['服务器地址', server.server_address],
+              ['认证服务器', server.authentication_server_address || '-'],
               ['认证端口', server.authentication_port],
+              ['认证密钥', server.authentication_secret ? '已设置' : '未设置'],
+              ['计费服务器', server.accounting_server_address || '-'],
               ['计费端口', server.accounting_port],
+              ['计费密钥', server.accounting_secret ? '已设置' : '未设置'],
+              ['计费间隔（秒）', server.accounting_interval],
               ['NAS IP 地址', server.nas_ip_address || '-'],
               ['报文源地址', server.source_address || '-'],
-              ['认证协议', server.protocol],
               ['超时时间', server.timeout],
               ['重试次数', server.retry_count],
               ['状态', server.enabled ? '启用' : '停用']
@@ -435,14 +482,17 @@
                   });
                 }, event);
               });
+            testButton.id = uid('app-server-test-' + safeId(server.name));
             var userTestButton = actionButton('Radius 用户测试', '',
               function (event) {
                 openUserTestModal(server, event);
               });
+            userTestButton.id = uid('app-server-usertest-' + safeId(server.name));
             var editButton = actionButton('修改', '',
               function (event) {
                 enterEditMode(server);
               });
+            editButton.id = uid('app-server-edit-' + safeId(server.name));
             var deleteButton = actionButton('删除', 'app-button-danger',
               function (event) {
                 global.RtUI.confirm('删除 Server', '确认删除 Server「' + server.name + '」？')
@@ -456,6 +506,7 @@
                     });
                   });
               });
+            deleteButton.id = uid('app-server-delete-' + safeId(server.name));
             actions.appendChild(editButton);
             actions.appendChild(testButton);
             actions.appendChild(userTestButton);

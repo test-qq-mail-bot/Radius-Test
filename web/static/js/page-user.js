@@ -17,6 +17,10 @@
 
   var PROTOCOLS = ['pap', 'chap', 'mschap', 'mschapv2', 'eap-md5'];
 
+  function safeId(s) {
+    return String(s == null ? '' : s).replace(/[^A-Za-z0-9_-]/g, '_') || 'x';
+  }
+
   /* CSV 单元格转义：含逗号/引号/换行时用双引号包裹，内部引号翻倍 */
   function csvCell(value) {
     var text = String(value === undefined || value === null ? '' : value);
@@ -156,10 +160,12 @@
       // 批量操作条
       var batchBar = document.createElement('div');
       batchBar.className = 'app-form-row app-user-batch-bar';
+      batchBar.id = 'app-user-batch-bar';
 
       var selectAll = document.createElement('input');
       selectAll.type = 'checkbox';
       selectAll.className = 'app-user-select-all';
+      selectAll.id = 'app-user-select-all';
       var selectAllLabel = document.createElement('span');
       selectAllLabel.className = 'app-checkbox-label';
       selectAllLabel.textContent = '全选本页';
@@ -171,6 +177,7 @@
 
       var countText = document.createElement('span');
       countText.className = 'app-user-batch-count';
+      countText.id = 'app-user-batch-count';
       countText.textContent = '已选 0 项';
       batchBar.appendChild(countText);
 
@@ -179,12 +186,14 @@
       serverLabel.textContent = '目标 Server';
       var serverSelect = document.createElement('select');
       serverSelect.className = 'app-field-select app-user-batch-server';
+      serverSelect.id = 'app-user-batch-server';
 
       var protoLabel = document.createElement('span');
       protoLabel.className = 'app-field-hint';
       protoLabel.textContent = '协议';
       var protoSelect = document.createElement('select');
       protoSelect.className = 'app-field-select app-user-batch-server';
+      protoSelect.id = 'app-user-batch-protocol';
       PROTOCOLS.forEach(function (p) {
         var option = document.createElement('option');
         option.value = p;
@@ -198,8 +207,11 @@
       batchBar.appendChild(protoSelect);
 
       var batchTestBtn = global.RtUI.button('批量测试', '');
+      batchTestBtn.id = 'app-user-batch-test';
       var batchDeleteBtn = global.RtUI.button('批量删除', 'danger');
+      batchDeleteBtn.id = 'app-user-batch-delete';
       var exportCsvBtn = global.RtUI.button('导出 CSV', '');
+      exportCsvBtn.id = 'app-user-batch-export';
       batchBar.appendChild(batchTestBtn);
       batchBar.appendChild(batchDeleteBtn);
       batchBar.appendChild(exportCsvBtn);
@@ -517,9 +529,19 @@
               test.type = 'button';
               test.textContent = '测试';
               test.style.marginRight = '8px';
-              test.addEventListener('click', function () {
-                global.RtUI.toast('已跳转至 RADIUS Server 页面，请选择服务器并点击「Radius 用户测试」', 'info');
-                window.location.hash = '#/server';
+              test.id = 'app-user-test-' + safeId(row.username);
+              test.addEventListener('click', function (event) {
+                var server = serverSelect.value;
+                if (!server) {
+                  global.RtUI.toast('请先在上方选择目标 RADIUS Server', 'warning');
+                  return;
+                }
+                global.RtUI.withLoading(test, function () {
+                  return global.RtApi.batchAuthTest(server, [row.username], protoSelect.value)
+                    .then(function (data) {
+                      showBatchTestResult(data.results || []);
+                    });
+                }, event);
               });
 
               var edit = document.createElement('button');

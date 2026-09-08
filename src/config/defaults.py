@@ -60,14 +60,18 @@ DEFAULT_CONFIG = {
 SERVER_FIELDS = {
     "name": "",
     "server_address": "",
+    "shared_secret": "",
+    "authentication_server_address": "",
     "authentication_port": 1812,
+    "authentication_secret": "",
+    "accounting_server_address": "",
     "accounting_port": 1813,
+    "accounting_secret": "",
+    "accounting_interval": 0,
     "nas_ip_address": "",
     "source_address": "",
-    "shared_secret": "",
     "timeout": 5.0,
     "retry_count": 3,
-    "protocol": "pap",
     "enabled": True,
 }
 

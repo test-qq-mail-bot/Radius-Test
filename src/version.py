@@ -18,8 +18,8 @@
 # 软件名称
 SOFTWARE_NAME = "Radius-Test"
 # 软件版本号（命名规则：变动日期-V序号）
-SOFTWARE_VERSION = "20260908-V1"
+SOFTWARE_VERSION = "20260908-V2"
 # 前端静态资源版本，用于刷新浏览器缓存
-FRONTEND_VERSION = "20260908-V1"
+FRONTEND_VERSION = "20260908-V2"
 # 项目定位描述
 SOFTWARE_DESCRIPTION = "RADIUS 认证、在线会话及性能测试工具"

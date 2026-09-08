@@ -160,6 +160,20 @@ def update_section(section: str, values: Dict[str, Any]) -> Dict[str, Any]:
         return config
 
 
+def _migrate_server(server: dict) -> dict:
+    """向后兼容：旧版仅 server_address/shared_secret 的 Server 配置，
+    回填专用认证/计费服务器与密钥（缺省沿用通用字段，与 RadiusClient 路由一致）。"""
+    if not str(server.get("authentication_server_address") or "").strip():
+        server["authentication_server_address"] = server.get("server_address", "")
+    if not str(server.get("authentication_secret") or "").strip():
+        server["authentication_secret"] = server.get("shared_secret", "")
+    if not str(server.get("accounting_server_address") or "").strip():
+        server["accounting_server_address"] = server.get("server_address", "")
+    if not str(server.get("accounting_secret") or "").strip():
+        server["accounting_secret"] = server.get("shared_secret", "")
+    return server
+
+
 def get_servers() -> List[Dict[str, Any]]:
     """返回 RADIUS Server 列表。"""
     servers = get("radius_servers") or []
@@ -169,7 +183,7 @@ def get_servers() -> List[Dict[str, Any]]:
             continue
         server = defaults.default_server()
         server.update({k: v for k, v in item.items() if k in server})
-        result.append(server)
+        result.append(_migrate_server(server))
     return result
 
 
@@ -186,7 +200,7 @@ def save_servers(servers: List[Dict[str, Any]]) -> None:
         for item in servers:
             server = defaults.default_server()
             server.update({k: v for k, v in item.items() if k in server})
-            cleaned.append(server)
+            cleaned.append(_migrate_server(server))
         config["radius_servers"] = cleaned
         save_config(config)
         logger.info("config", "RADIUS Server 列表已保存", {"count": len(cleaned)})
