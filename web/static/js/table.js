@@ -15,6 +15,8 @@
 
   var PAGE_SIZES = [10, 20, 50, 100];
   var MAX_PAGE_BUTTONS = 5;
+  /* 表格实例序号：保证同一页面存在多个表格时 id 仍唯一 */
+  var TABLE_SEQ = 0;
 
   function createElement(tag, className, text) {
     var element = document.createElement(tag);
@@ -29,6 +31,7 @@
 
   function Table(config) {
     this.container = config.container;
+    this.id = config.tableId || ('app-table-' + (++TABLE_SEQ));
     this.columns = config.columns || [];
     this.fetchData = config.fetchData;
     this.fetchOptions = config.fetchOptions;
@@ -38,11 +41,12 @@
     /* onRendered()：每次表体渲染完成后回调，供外部同步「全选本页」等联动状态 */
     this.onRendered = config.onRendered;
     this.defaultSortField = config.defaultSortField || this.columns[0].key;
+    this.defaultSortOrder = config.defaultSortOrder || 'asc';
     this.pageSize = 10;
     this.page = 1;
     this.total = 0;
     this.sortField = this.defaultSortField;
-    this.sortOrder = 'asc';
+    this.sortOrder = this.defaultSortOrder;
     /* filters: { field: [已选中的取值] } */
     this.filters = {};
     /* options: { field: [{value, count}] } */
@@ -54,17 +58,23 @@
 
   Table.prototype._build = function () {
     this.wrap = createElement('div', 'app-table-wrap');
+    this.wrap.id = this.id + '-wrap';
     this.table = createElement('table', 'app-table');
+    this.table.id = this.id;
     this.thead = createElement('thead', 'app-table-head');
+    this.thead.id = this.id + '-head';
     this.tbody = createElement('tbody', 'app-table-body');
+    this.tbody.id = this.id + '-body';
     this.table.appendChild(this.thead);
     this.table.appendChild(this.tbody);
     this.wrap.appendChild(this.table);
 
     this.empty = createElement('div', 'app-table-empty', '暂无符合条件的数据');
+    this.empty.id = this.id + '-empty';
     this.empty.hidden = true;
 
     this.pagination = createElement('div', 'app-pagination');
+    this.pagination.id = this.id + '-pagination';
 
     this.container.appendChild(this.wrap);
     this.container.appendChild(this.empty);
@@ -80,6 +90,7 @@
     this.columns.forEach(function (column) {
       var th = createElement('th', 'app-table-header-cell');
       th.dataset.field = column.key;
+      th.id = self.id + '-th-' + column.key;
       var inner = createElement('div', 'app-table-th-inner');
 
       var label = createElement('span', 'app-table-th-label', column.label);
@@ -91,6 +102,7 @@
 
       var sortIcon = document.createElement('img');
       sortIcon.className = 'app-table-sort';
+      sortIcon.id = self.id + '-sort-' + column.key;
       sortIcon.alt = '';
       sortIcon.hidden = true;
 
@@ -100,6 +112,7 @@
       if (column.filterable !== false) {
         var filterButton = createElement('button', 'app-table-filter-button');
         filterButton.type = 'button';
+        filterButton.id = self.id + '-filter-' + column.key;
         filterButton.title = '筛选';
         var filterIcon = document.createElement('img');
         filterIcon.className = 'app-table-filter-icon';
@@ -177,10 +190,14 @@
     }
     var panel = createElement('div', 'app-filter-panel');
     panel.dataset.field = column.key;
+    panel.id = this.id + '-panel-' + column.key;
+    var panelPrefix = this.id + '-panel-' + column.key + '-';
 
     var actions = createElement('div', 'app-filter-actions');
+    actions.id = panelPrefix + 'actions';
     var sortAsc = createElement('button', 'app-filter-action', '升序');
     sortAsc.type = 'button';
+    sortAsc.id = panelPrefix + 'sort-asc';
     sortAsc.addEventListener('click', function () {
       self.sortField = column.key;
       self.sortOrder = 'asc';
@@ -190,6 +207,7 @@
     });
     var sortDesc = createElement('button', 'app-filter-action', '降序');
     sortDesc.type = 'button';
+    sortDesc.id = panelPrefix + 'sort-desc';
     sortDesc.addEventListener('click', function () {
       self.sortField = column.key;
       self.sortOrder = 'desc';
@@ -199,6 +217,7 @@
     });
     var selectAll = createElement('button', 'app-filter-action', '全选');
     selectAll.type = 'button';
+    selectAll.id = panelPrefix + 'select-all';
     selectAll.addEventListener('click', function () {
       var inputs = panel.querySelectorAll('input[type=checkbox]');
       Array.prototype.forEach.call(inputs, function (input) {
@@ -207,6 +226,7 @@
     });
     var invert = createElement('button', 'app-filter-action', '反选');
     invert.type = 'button';
+    invert.id = panelPrefix + 'invert';
     invert.addEventListener('click', function () {
       var inputs = panel.querySelectorAll('input[type=checkbox]');
       Array.prototype.forEach.call(inputs, function (input) {
@@ -215,6 +235,7 @@
     });
     var duplicate = createElement('button', 'app-filter-action', '重复项');
     duplicate.type = 'button';
+    duplicate.id = panelPrefix + 'duplicate';
     duplicate.addEventListener('click', function () {
       var inputs = panel.querySelectorAll('input[type=checkbox]');
       Array.prototype.forEach.call(inputs, function (input) {
@@ -223,6 +244,7 @@
     });
     var unique = createElement('button', 'app-filter-action', '唯一项');
     unique.type = 'button';
+    unique.id = panelPrefix + 'unique';
     unique.addEventListener('click', function () {
       var inputs = panel.querySelectorAll('input[type=checkbox]');
       Array.prototype.forEach.call(inputs, function (input) {
@@ -240,10 +262,13 @@
       panel.appendChild(createElement('div', 'app-filter-option', '（无可用选项）'));
     }
     options.forEach(function (option) {
+      var optionSafe = String(option.value).replace(/[^A-Za-z0-9_-]/g, '_') || 'x';
       var label = createElement('label', 'app-filter-option');
+      label.id = panelPrefix + 'option-label-' + optionSafe;
       var input = document.createElement('input');
       input.type = 'checkbox';
       input.value = option.value;
+      input.id = panelPrefix + 'option-' + optionSafe;
       input.dataset.count = String(option.count || 0);
       input.checked = selected.indexOf(option.value) >= 0;
       var text = createElement('span', 'app-filter-option-text',
@@ -254,8 +279,10 @@
     });
 
     var footer = createElement('div', 'app-filter-actions');
+    footer.id = panelPrefix + 'footer';
     var clear = createElement('button', 'app-filter-action', '清除');
     clear.type = 'button';
+    clear.id = panelPrefix + 'clear';
     clear.addEventListener('click', function () {
       Array.prototype.forEach.call(panel.querySelectorAll('input[type=checkbox]'), function (input) {
         input.checked = false;
@@ -265,6 +292,7 @@
     });
     var apply = createElement('button', 'app-filter-action', '确定');
     apply.type = 'button';
+    apply.id = panelPrefix + 'apply';
     apply.addEventListener('click', function () {
       var values = [];
       Array.prototype.forEach.call(panel.querySelectorAll('input[type=checkbox]'), function (input) {
@@ -464,9 +492,11 @@
 
     var totalText = createElement('span', 'app-pagination-total',
       '共 ' + this.total + ' 条');
+    totalText.id = this.id + '-pagination-total';
     this.pagination.appendChild(totalText);
 
     var sizeSelect = createElement('select', 'app-pagination-size');
+    sizeSelect.id = this.id + '-page-size';
     PAGE_SIZES.forEach(function (size) {
       var option = document.createElement('option');
       option.value = String(size);
@@ -485,6 +515,7 @@
 
     var prev = createElement('button', 'app-pagination-button', '<');
     prev.type = 'button';
+    prev.id = this.id + '-page-prev';
     prev.disabled = this.page <= 1;
     prev.addEventListener('click', function () {
       if (self.page > 1) {
@@ -497,6 +528,7 @@
     this._pageNumbers().forEach(function (pageNumber) {
       var button = createElement('button', 'app-pagination-button', String(pageNumber));
       button.type = 'button';
+      button.id = self.id + '-page-' + pageNumber;
       if (pageNumber === self.page) {
         button.classList.add('is-active');
       }
@@ -509,6 +541,7 @@
 
     var next = createElement('button', 'app-pagination-button', '>');
     next.type = 'button';
+    next.id = this.id + '-page-next';
     next.disabled = this.page >= totalPages;
     next.addEventListener('click', function () {
       if (self.page < totalPages) {

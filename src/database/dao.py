@@ -398,14 +398,21 @@ def get_result_detail(result_id: int) -> Optional[Dict[str, Any]]:
     if row is None:
         return None
     detail = dict(row)
-    cursor = connection.execute(
-        "SELECT id, packet_type, packet_time, raw_packet, parse_status, parse_error "
-        "FROM radius_packets WHERE task_id = ? AND username = ? ORDER BY id",
-        (detail["task_id"], detail["username"]),
-    )
-    packets = [dict(r) for r in cursor.fetchall()]
-    cursor.close()
-    for packet in packets:
+    # 仅保留该用户最新的认证报文（请求 + 响应），用于「认证发起、认证成功获取属性」链路，
+    # 不保留历史报文（性能测试反复登录会产生大量历史，详情页只需最新一次）。
+    packets = []
+    for direction in ("request-Access-%", "response-Access-%"):
+        cursor = connection.execute(
+            "SELECT id, packet_type, packet_time, raw_packet, parse_status, parse_error "
+            "FROM radius_packets WHERE task_id = ? AND username = ? "
+            "AND packet_type LIKE ? ORDER BY id DESC LIMIT 1",
+            (detail["task_id"], detail["username"], direction),
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        if row is None:
+            continue
+        packet = dict(row)
         cursor = connection.execute(
             "SELECT attribute_id, radius_template, name, name_zh, type, value, vendor_id "
             "FROM radius_attributes WHERE packet_id = ? ORDER BY id",
@@ -413,6 +420,7 @@ def get_result_detail(result_id: int) -> Optional[Dict[str, Any]]:
         )
         packet["attributes"] = [dict(r) for r in cursor.fetchall()]
         cursor.close()
+        packets.append(packet)
     detail["packets"] = packets
     cursor = connection.execute(
         "SELECT task_id, start_time, end_time, server, protocol, status, "
@@ -461,66 +469,6 @@ def get_session(task_id: str) -> Optional[Dict[str, Any]]:
     row = cursor.fetchone()
     cursor.close()
     return dict(row) if row else None
-
-
-def query_packets(filters: Dict[str, Any], page: int = 1,
-                  page_size: int = 10) -> Tuple[List[Dict[str, Any]], int]:
-    """
-    分页查询报文记录，供 RADIUS 解析页面使用。
-
-    返回：
-        (报文列表, 总数)
-    """
-    clauses = []
-    params = []
-    for field in ("task_id", "username", "server", "packet_type"):
-        value = filters.get(field)
-        if value:
-            clauses.append("%s = ?" % field)
-            params.append(value)
-    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
-    connection = _get_read_connection()
-    cursor = connection.execute(
-        "SELECT COUNT(*) AS total FROM radius_packets" + where, params
-    )
-    row = cursor.fetchone()
-    total = int(row["total"]) if row else 0
-    cursor.close()
-    limit = max(1, min(int(page_size), 1000))
-    offset = max(0, (max(1, int(page)) - 1) * limit)
-    cursor = connection.execute(
-        "SELECT id, task_id, username, server, packet_type, packet_time, "
-        "parse_status, parse_error FROM radius_packets"
-        + where
-        + " ORDER BY id DESC LIMIT ? OFFSET ?",
-        params + [limit, offset],
-    )
-    rows = [dict(r) for r in cursor.fetchall()]
-    cursor.close()
-    return rows, total
-
-
-def get_packet_detail(packet_id: int) -> Optional[Dict[str, Any]]:
-    """查询单个报文及其属性解析结果。"""
-    connection = _get_read_connection()
-    cursor = connection.execute(
-        "SELECT id, task_id, username, server, packet_type, packet_time, "
-        "raw_packet, parse_status, parse_error FROM radius_packets WHERE id = ?",
-        (packet_id,),
-    )
-    row = cursor.fetchone()
-    cursor.close()
-    if row is None:
-        return None
-    detail = dict(row)
-    cursor = connection.execute(
-        "SELECT attribute_id, radius_template, name, name_zh, type, value, vendor_id "
-        "FROM radius_attributes WHERE packet_id = ? ORDER BY id",
-        (packet_id,),
-    )
-    detail["attributes"] = [dict(r) for r in cursor.fetchall()]
-    cursor.close()
-    return detail
 
 
 def delete_single_test(username: str) -> None:

@@ -55,12 +55,15 @@
     render: function (container) {
       // ---------- 顶部操作：表单 + 保存 / 导入用户 ----------
       var toolbar = global.RtUI.card('用户操作');
+      toolbar.element.id = global.uid('app-user-toolbar-card');
       var actions = document.createElement('div');
       actions.className = 'app-form-row';
+      actions.id = global.uid('app-user-toolbar-actions');
 
       var addForm = document.createElement('div');
       addForm.className = 'app-form-row';
       addForm.style.flex = '1 1 100%';
+      addForm.id = global.uid('app-user-add-form');
 
       function makeInput(name, placeholder, type, autocomplete) {
         var element = document.createElement('input');
@@ -75,12 +78,16 @@
       }
 
       var nameInput = makeInput('username', '用户名', 'text', 'off');
+      nameInput.id = global.uid('app-user-name-input');
       /* 密码框使用密文组件（password + 眼睛切换）；passInput 仍指向内部 input，
          保持取值、校验与聚焦逻辑不变。 */
       var passWrap = global.RtUI.secretInput('password', '', null);
+      passWrap.id = global.uid('app-user-password-wrap');
       var passInput = passWrap.querySelector('.app-secret-input-field');
+      passInput.id = global.uid('app-user-password-input');
       passInput.placeholder = '密码';
       var remarkInput = makeInput('remark', '备注', 'text', 'off');
+      remarkInput.id = global.uid('app-user-remark-input');
       global.RtUI.validate.bindInput(nameInput, {
         rules: [{ type: 'required' }], label: '用户名'
       });
@@ -104,6 +111,7 @@
 
       /* 保存：用户名唯一键，同名覆盖；密码留空则不修改原密码 */
       var saveButton = global.RtUI.button('保存', 'primary');
+      saveButton.id = global.uid('app-user-save');
       saveButton.addEventListener('click', function (event) {
         var nameErr = global.RtUI.validate.checkInput(nameInput, nameInput._validateSchema);
         nameInput.classList.toggle('is-invalid', !!nameErr);
@@ -125,8 +133,7 @@
         var payload = {
           username: username,
           password: password,
-          remark: remarkInput.value.trim(),
-          enabled: true
+          remark: remarkInput.value.trim()
         };
         global.RtUI.withLoading(saveButton, function () {
           return global.RtApi.createUser(payload).then(function (result) {
@@ -146,6 +153,7 @@
 
       /* 导入用户：弹窗内完成 下载模板 / 选择文件 / 预览文本 / 提交导入 */
       var importUserButton = global.RtUI.button('导入用户', '');
+      importUserButton.id = global.uid('app-user-import-open');
       importUserButton.addEventListener('click', function () {
         openImportModal();
       });
@@ -157,7 +165,9 @@
 
       // ---------- 用户列表 ----------
       var listCard = global.RtUI.card('用户列表');
+      listCard.element.id = global.uid('app-user-list-card');
       var listHost = document.createElement('div');
+      listHost.id = global.uid('app-user-list-host');
       listCard.body.appendChild(listHost);
       container.appendChild(listCard.element);
 
@@ -222,6 +232,7 @@
       listHost.appendChild(batchBar);
 
       var tableHost = document.createElement('div');
+      tableHost.id = global.uid('app-user-table-host');
       listHost.appendChild(tableHost);
 
       function updateBatchBar() {
@@ -318,10 +329,12 @@
 
       function showBatchTestResult(results) {
         var host = document.createElement('div');
+        host.id = global.uid('app-user-batch-result-host');
         var wrap = document.createElement('div');
         wrap.className = 'app-table-wrap';
         var tableEl = document.createElement('table');
         tableEl.className = 'app-table';
+        tableEl.id = global.uid('app-user-batch-result-table');
         var thead = document.createElement('thead');
         var headRow = document.createElement('tr');
         ['用户名', '连接结果', 'RADIUS 响应结果', '响应时间', '错误原因'].forEach(function (text) {
@@ -351,10 +364,12 @@
       /* 导入失败明细表 */
       function showImportFailures(failures) {
         var host = document.createElement('div');
+        host.id = global.uid('app-user-import-failures-host');
         var wrap = document.createElement('div');
         wrap.className = 'app-table-wrap';
         var tableEl = document.createElement('table');
         tableEl.className = 'app-table';
+        tableEl.id = global.uid('app-user-import-failures-table');
         var thead = document.createElement('thead');
         var headRow = document.createElement('tr');
         ['行号', '用户名', '失败原因'].forEach(function (text) {
@@ -384,25 +399,29 @@
       function openImportModal() {
         var host = document.createElement('div');
         host.className = 'app-form';
+        host.id = global.uid('app-user-import-host');
 
         var tip = document.createElement('div');
         tip.className = 'app-field-hint app-user-import-tip';
-        tip.textContent = '导入文件为 CSV 格式，首行为表头：username,password,enabled,remark。'
+        tip.id = global.uid('app-user-import-tip');
+        tip.textContent = '导入文件为 CSV 格式，首行为表头：username,password,remark。'
           + 'username 必填，是唯一键，同名即覆盖；'
           + 'password 新用户必填，已存在用户留空表示不修改原密码；'
-          + 'enabled 只允许 true / false，留空按 true 处理；remark 可为空。'
+          + 'remark 可为空。'
           + '以 # 开头的行与空行会被忽略，文件需为 UTF-8 编码。'
           + '合法行全部导入，非法行会跳过并在导入结果中逐行列出原因。';
         host.appendChild(tip);
 
         var area = document.createElement('textarea');
         area.className = 'app-field-textarea app-user-import-textarea';
+        area.id = global.uid('app-user-import-textarea');
         area.rows = 10;
         area.placeholder = '可粘贴 CSV 内容，或点击「选择文件」读取 .csv 文件';
         host.appendChild(area);
 
         var fileInput = document.createElement('input');
         fileInput.type = 'file';
+        fileInput.id = global.uid('app-user-import-file');
         fileInput.accept = '.csv';
         fileInput.hidden = true;
         host.appendChild(fileInput);
@@ -410,13 +429,17 @@
         var pickRow = document.createElement('div');
         pickRow.className = 'app-form-row';
         var downloadBtn = global.RtUI.button('导入文件下载', '');
+        downloadBtn.id = global.uid('app-user-import-download');
         var pickBtn = global.RtUI.button('选择文件', '');
+        pickBtn.id = global.uid('app-user-import-pick');
         pickRow.appendChild(downloadBtn);
         pickRow.appendChild(pickBtn);
         host.appendChild(pickRow);
 
         var importBtn = global.RtUI.button('导入用户', 'primary');
+        importBtn.id = global.uid('app-user-import-submit');
         var closeBtn = global.RtUI.button('关闭', '');
+        closeBtn.id = global.uid('app-user-import-close');
         closeBtn.addEventListener('click', function () {
           global.RtUI.closeModal();
         });
@@ -682,10 +705,10 @@
           return selectedUsernames.has(u.username);
         });
         var body = rows.map(function (u) {
-          return [u.username, '', u.enabled === false ? 'false' : 'true', u.remark || ''];
+          return [u.username, '', u.remark || ''];
         });
         downloadCsv('users-selected.csv',
-          [['username', 'password', 'enabled', 'remark']].concat(body));
+          [['username', 'password', 'remark']].concat(body));
         global.RtUI.toast('已导出 ' + rows.length + ' 个用户（密码已置空）', 'success');
         if (global.RtDebug) {
           global.RtDebug.click(exportCsvBtn, event, {

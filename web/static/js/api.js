@@ -172,12 +172,6 @@
     listSessions: function (params) {
       return this.get('/api/sessions?' + params);
     },
-    listPackets: function (params) {
-      return this.get('/api/packets?' + params);
-    },
-    packetDetail: function (id) {
-      return this.get('/api/packets/' + id);
-    },
     clearResults: function () {
       return this.post('/api/results/clear', {});
     }

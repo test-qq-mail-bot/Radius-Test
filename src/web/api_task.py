@@ -36,7 +36,7 @@ def _resolve_users(usernames: List[str]) -> List[tuple]:
     """
     users = _load_users()
     if not usernames:
-        return [(u["username"], u["password"]) for u in users if u.get("enabled", True)]
+        return [(u["username"], u["password"]) for u in users]
     mapping = {u["username"]: u["password"] for u in users}
     result = []
     missing = []

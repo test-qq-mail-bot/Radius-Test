@@ -42,21 +42,28 @@
       }
 
       var webCard = global.RtUI.card('Web 服务');
+      webCard.element.id = global.uid('app-config-web-card');
       var webForm = document.createElement('div');
       webForm.className = 'app-form';
+      webForm.id = global.uid('app-config-web-form');
       var webRow1 = document.createElement('div');
       webRow1.className = 'app-form-row';
+      webRow1.id = global.uid('app-config-web-row-1');
       controls.hosts = textInput('app-config-hosts-input');
+      controls.hosts.id = global.uid('app-config-hosts');
       webRow1.appendChild(box('监听地址', controls.hosts, '多个地址用英文逗号分隔',
         [{ type: 'required' }]));
       controls.port = textInput('app-config-port-input', 'number');
+      controls.port.id = global.uid('app-config-port');
       webRow1.appendChild(box('监听端口', controls.port, '留空则在 50000~60000 内随机选择',
         [{ type: 'port', optional: true }]));
       webForm.appendChild(webRow1);
       var httpsRow = document.createElement('div');
       httpsRow.className = 'app-checkbox-row';
+      httpsRow.id = global.uid('app-config-https-row');
       controls.https = document.createElement('input');
       controls.https.type = 'checkbox';
+      controls.https.id = global.uid('app-config-https');
       controls.https.className = 'app-config-https-checkbox';
       var httpsLabel = document.createElement('span');
       httpsLabel.className = 'app-checkbox-label';
@@ -68,11 +75,15 @@
       container.appendChild(webCard.element);
 
       var logCard = global.RtUI.card('日志');
+      logCard.element.id = global.uid('app-config-log-card');
       var logForm = document.createElement('div');
       logForm.className = 'app-form';
+      logForm.id = global.uid('app-config-log-form');
       var logRow = document.createElement('div');
       logRow.className = 'app-form-row';
+      logRow.id = global.uid('app-config-log-row');
       controls.logLevel = document.createElement('select');
+      controls.logLevel.id = global.uid('app-config-loglevel');
       controls.logLevel.className = 'app-field-select app-config-loglevel-select';
       ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'].forEach(function (level) {
         var option = document.createElement('option');
@@ -86,29 +97,39 @@
       container.appendChild(logCard.element);
 
       var testCard = global.RtUI.card('测试参数');
+      testCard.element.id = global.uid('app-config-test-card');
       var testForm = document.createElement('div');
       testForm.className = 'app-form';
+      testForm.id = global.uid('app-config-test-form');
       var testRow1 = document.createElement('div');
       testRow1.className = 'app-form-row';
+      testRow1.id = global.uid('app-config-test-row-1');
       controls.rate = textInput('app-config-rate-input', 'number');
+      controls.rate.id = global.uid('app-config-rate');
       testRow1.appendChild(box('测试速率（次/秒）', controls.rate, null,
         [{ type: 'positiveNumber', min: 0.1, max: 10000 }]));
       controls.concurrency = textInput('app-config-concurrency-input', 'number');
+      controls.concurrency.id = global.uid('app-config-concurrency');
       testRow1.appendChild(box('最大并发', controls.concurrency, null,
         [{ type: 'positiveNumber', min: 1, max: 65535 }]));
       controls.timeout = textInput('app-config-timeout-input', 'number');
+      controls.timeout.id = global.uid('app-config-timeout');
       testRow1.appendChild(box('请求超时（秒）', controls.timeout, null,
         [{ type: 'positiveNumber', min: 0.1, max: 120 }]));
       controls.retry = textInput('app-config-retry-input', 'number');
+      controls.retry.id = global.uid('app-config-retry');
       testRow1.appendChild(box('重试次数', controls.retry, null,
         [{ type: 'positiveNumber', min: 1, max: 10 }]));
       testForm.appendChild(testRow1);
       var testRow2 = document.createElement('div');
       testRow2.className = 'app-form-row';
+      testRow2.id = global.uid('app-config-test-row-2');
       controls.interim = textInput('app-config-interim-input', 'number');
+      controls.interim.id = global.uid('app-config-interim');
       testRow2.appendChild(box('Interim-Update 间隔（秒）', controls.interim,
         '0 表示不发送；默认 60', [{ type: 'integer', min: 0, max: 3600 }]));
       controls.interimFail = textInput('app-config-interimfail-input', 'number');
+      controls.interimFail.id = global.uid('app-config-interimfail');
       testRow2.appendChild(box('掉线判定连续失败次数', controls.interimFail,
         '默认 3；判定条件为 60 秒 × 3 次 = 180 秒', [{ type: 'integer', min: 1, max: 10 }]));
       testForm.appendChild(testRow2);
@@ -116,10 +137,13 @@
       container.appendChild(testCard.element);
 
       var storageCard = global.RtUI.card('数据存储');
+      storageCard.element.id = global.uid('app-config-storage-card');
       var storageRow = document.createElement('div');
       storageRow.className = 'app-checkbox-row';
+      storageRow.id = global.uid('app-config-storage-row');
       controls.savePackets = document.createElement('input');
       controls.savePackets.type = 'checkbox';
+      controls.savePackets.id = global.uid('app-config-save-packets');
       controls.savePackets.className = 'app-config-savepackets-checkbox';
       var saveLabel = document.createElement('span');
       saveLabel.className = 'app-checkbox-label';
@@ -135,11 +159,15 @@
       container.appendChild(storageCard.element);
 
       var radiusCard = global.RtUI.card('RADIUS 协议');
+      radiusCard.element.id = global.uid('app-config-radius-card');
       var radiusForm = document.createElement('div');
       radiusForm.className = 'app-form';
+      radiusForm.id = global.uid('app-config-radius-form');
       var radiusRow = document.createElement('div');
       radiusRow.className = 'app-form-row';
+      radiusRow.id = global.uid('app-config-radius-row');
       controls.peerBytes = document.createElement('select');
+      controls.peerBytes.id = global.uid('app-config-peerbytes');
       controls.peerBytes.className = 'app-field-select app-config-peerbytes-select';
       [['8', '8 字节（pppd 等参考客户端实现，默认）'], ['16', '16 字节（RFC 2759 伪代码）']]
         .forEach(function (pair) {
@@ -155,13 +183,17 @@
       container.appendChild(radiusCard.element);
 
       var aboutCard = global.RtUI.card('关于');
+      aboutCard.element.id = global.uid('app-config-about-card');
       var aboutHost = document.createElement('div');
+      aboutHost.id = global.uid('app-config-about-host');
       aboutCard.body.appendChild(aboutHost);
       container.appendChild(aboutCard.element);
 
       var saveRow = document.createElement('div');
       saveRow.className = 'app-form-row';
+      saveRow.id = global.uid('app-config-save-row');
       var saveButton = global.RtUI.button('保存配置', 'primary');
+      saveButton.id = global.uid('app-config-save');
       saveButton.classList.add('app-config-save-button');
       saveRow.appendChild(saveButton);
       container.appendChild(saveRow);
@@ -228,6 +260,7 @@
         aboutHost.innerHTML = '';
         var list = document.createElement('div');
         list.className = 'app-detail-list';
+        list.id = global.uid('app-config-about-list');
         [
           ['软件名称', info.software_name],
           ['软件版本', info.software_version],

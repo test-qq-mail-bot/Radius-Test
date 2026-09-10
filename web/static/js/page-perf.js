@@ -17,6 +17,7 @@
   function metricNode(label, value, unit) {
     var box = document.createElement('div');
     box.className = 'app-metric';
+    box.id = global.uid('app-perf-metric-' + String(label).replace(/[^A-Za-z0-9_-]/g, '_'));
     var l = document.createElement('div');
     l.className = 'app-metric-label';
     l.textContent = label;
@@ -57,16 +58,21 @@
     render: function (container) {
       var controls = {};
       var setupCard = global.RtUI.card('测试参数');
+      setupCard.element.id = global.uid('app-perf-setup-card');
       var form = document.createElement('div');
       form.className = 'app-form';
+      form.id = global.uid('app-perf-form');
 
       var row1 = document.createElement('div');
       row1.className = 'app-form-row';
+      row1.id = global.uid('app-perf-row-1');
       controls.server = document.createElement('select');
       controls.server.className = 'app-field-select app-perf-server-select';
+      controls.server.id = global.uid('app-perf-server');
       row1.appendChild(inputRow('目标 RADIUS Server', controls.server));
       controls.protocol = document.createElement('select');
       controls.protocol.className = 'app-field-select app-perf-protocol-select';
+      controls.protocol.id = global.uid('app-perf-protocol');
       ['pap', 'chap', 'mschap', 'mschapv2', 'eap-md5'].forEach(function (item) {
         var option = document.createElement('option');
         option.value = item;
@@ -78,18 +84,22 @@
 
       var row2 = document.createElement('div');
       row2.className = 'app-form-row';
+      row2.id = global.uid('app-perf-row-2');
       controls.rate = document.createElement('input');
       controls.rate.className = 'app-field-input app-perf-rate-input';
+      controls.rate.id = global.uid('app-perf-rate');
       controls.rate.type = 'number';
       controls.rate.value = '10';
       row2.appendChild(inputRow('测试速率（次/秒）', controls.rate, '每秒发起的完整登录数'));
       controls.concurrency = document.createElement('input');
       controls.concurrency.className = 'app-field-input app-perf-concurrency-input';
+      controls.concurrency.id = global.uid('app-perf-concurrency');
       controls.concurrency.type = 'number';
       controls.concurrency.value = '10000';
       row2.appendChild(inputRow('最大并发', controls.concurrency, '同时在途任务上限'));
       controls.onlineCriteria = document.createElement('select');
       controls.onlineCriteria.className = 'app-field-select app-perf-onlinecriteria-select';
+      controls.onlineCriteria.id = global.uid('app-perf-online-criteria');
       [
         ['accounting', '计费上线成功（默认）'],
         ['auth', '认证成功']
@@ -105,8 +115,10 @@
 
       var row3 = document.createElement('div');
       row3.className = 'app-form-row';
+      row3.id = global.uid('app-perf-row-3');
       controls.savePackets = document.createElement('input');
       controls.savePackets.type = 'checkbox';
+      controls.savePackets.id = global.uid('app-perf-save-packets');
       controls.savePackets.className = 'app-perf-savepackets-checkbox';
       var saveRow = document.createElement('div');
       saveRow.className = 'app-checkbox-row';
@@ -126,6 +138,7 @@
 
       controls.accounting = document.createElement('input');
       controls.accounting.type = 'checkbox';
+      controls.accounting.id = global.uid('app-perf-accounting');
       controls.accounting.className = 'app-perf-accounting-checkbox';
       controls.accounting.checked = true;
       var acctRow = document.createElement('div');
@@ -147,23 +160,26 @@
 
       var userBox = document.createElement('div');
       userBox.className = 'app-field';
+      userBox.id = global.uid('app-perf-user-box');
       var userLabel = document.createElement('label');
       userLabel.className = 'app-field-label';
-      userLabel.textContent = '测试用户（可多选，不选表示全部启用用户）';
+      userLabel.textContent = '测试用户（可多选，不选表示全部用户）';
       userBox.appendChild(userLabel);
 
       var userActions = document.createElement('div');
       userActions.className = 'app-user-list-actions';
+      userActions.id = global.uid('app-perf-user-actions');
       var selectAllBtn = global.RtUI.button('全选', 'ghost', 'sm');
+      selectAllBtn.id = global.uid('app-perf-select-all');
       var selectNoneBtn = global.RtUI.button('全不选', 'ghost', 'sm');
-      var selectEnabledBtn = global.RtUI.button('仅启用', 'ghost', 'sm');
+      selectNoneBtn.id = global.uid('app-perf-select-none');
       userActions.appendChild(selectAllBtn);
       userActions.appendChild(selectNoneBtn);
-      userActions.appendChild(selectEnabledBtn);
       userBox.appendChild(userActions);
 
       controls.users = document.createElement('div');
       controls.users.className = 'app-user-list app-perf-user-list';
+      controls.users.id = global.uid('app-perf-user-list');
       userBox.appendChild(controls.users);
       form.appendChild(userBox);
 
@@ -177,18 +193,16 @@
           controls.users.querySelectorAll('input[type="checkbox"]'),
           function (cb) { cb.checked = false; });
       });
-      selectEnabledBtn.addEventListener('click', function () {
-        Array.prototype.forEach.call(
-          controls.users.querySelectorAll('input[type="checkbox"]'),
-          function (cb) { cb.checked = !cb.disabled; });
-      });
 
       var buttonRow = document.createElement('div');
       buttonRow.className = 'app-form-row';
+      buttonRow.id = global.uid('app-perf-button-row');
       var startButton = global.RtUI.button('开始测试', 'primary');
       startButton.classList.add('app-perf-start-button');
+      startButton.id = global.uid('app-perf-start');
       var stopButton = global.RtUI.button('停止测试', 'danger');
       stopButton.classList.add('app-perf-stop-button');
+      stopButton.id = global.uid('app-perf-stop');
       stopButton.disabled = true;
       buttonRow.appendChild(startButton);
       buttonRow.appendChild(stopButton);
@@ -198,8 +212,10 @@
       container.appendChild(setupCard.element);
 
       var metricsCard = global.RtUI.card('实时指标');
+      metricsCard.element.id = global.uid('app-perf-metrics-card');
       var metricsHost = document.createElement('div');
       metricsHost.className = 'app-grid app-grid-4';
+      metricsHost.id = global.uid('app-perf-metrics-host');
       metricsCard.body.appendChild(metricsHost);
       container.appendChild(metricsCard.element);
 
@@ -264,7 +280,7 @@
           global.RtUI.toast('请先选择 RADIUS Server', 'warning');
           return;
         }
-        var userText = users.length === 0 ? '全部启用用户' : (users.join('、') || '');
+        var userText = users.length === 0 ? '全部用户' : (users.join('、') || '');
         global.RtUI.confirm('确认开始测试', '', [
           ['目标 RADIUS Server', payload.server_name],
           ['测试用户', userText],
@@ -339,14 +355,11 @@
           }
           state.users.forEach(function (user) {
             var label = document.createElement('label');
-            label.className = 'app-user-list-item' + (user.enabled ? '' : ' is-disabled');
+            label.className = 'app-user-list-item';
             var cb = document.createElement('input');
             cb.type = 'checkbox';
             cb.value = user.username;
-            cb.disabled = !user.enabled;
-            if (user.enabled) {
-              cb.checked = true;
-            }
+            cb.checked = true;
             var text = document.createElement('span');
             text.textContent = user.username + (user.remark ? ' - ' + user.remark : '');
             label.appendChild(cb);

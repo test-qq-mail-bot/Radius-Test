@@ -14,10 +14,13 @@
     desc: '内置与自定义 Radius 属性模板管理',
     render: function (container) {
       var deriveCard = global.RtUI.card('派生自定义模板');
+      deriveCard.element.id = global.uid('app-dict-derive-card');
       var form = document.createElement('div');
       form.className = 'app-form';
+      form.id = global.uid('app-dict-derive-form');
       var row = document.createElement('div');
       row.className = 'app-form-row';
+      row.id = global.uid('app-dict-derive-row');
 
       function makeSelect(className) {
         var element = document.createElement('select');
@@ -51,9 +54,13 @@
       }
 
       var sourceSelect = makeSelect('app-dict-source-select');
+      sourceSelect.id = global.uid('app-dict-source');
       var nameInput = makeInput('app-dict-newname-input', '新模板名称');
+      nameInput.id = global.uid('app-dict-newname');
       var vendorInput = makeInput('app-dict-vendor-input', '厂商名称');
+      vendorInput.id = global.uid('app-dict-vendor');
       var vendorIdInput = makeInput('app-dict-vendorid-input', '厂商编号');
+      vendorIdInput.id = global.uid('app-dict-vendorid');
 
       var sourceBox = box('源模板', sourceSelect, '内置或已有模板');
       var nameBox = box('新模板名称', nameInput, '字母、数字、下划线、短横线');
@@ -86,27 +93,35 @@
 
       var buttonRow = document.createElement('div');
       buttonRow.className = 'app-form-row';
+      buttonRow.id = global.uid('app-dict-derive-button-row');
       var deriveButton = global.RtUI.button('派生为自定义模板', 'primary');
+      deriveButton.id = global.uid('app-dict-derive');
       buttonRow.appendChild(deriveButton);
       form.appendChild(buttonRow);
       deriveCard.body.appendChild(form);
       container.appendChild(deriveCard.element);
 
       var uploadCard = global.RtUI.card('上传自定义模板');
+      uploadCard.element.id = global.uid('app-dict-upload-card');
       var uploadRow = document.createElement('div');
       uploadRow.className = 'app-form-row';
+      uploadRow.id = global.uid('app-dict-upload-row');
       var fileInput = document.createElement('input');
       fileInput.type = 'file';
+      fileInput.id = global.uid('app-dict-upload-file');
       fileInput.accept = '.yaml,.yml';
       fileInput.className = 'app-field-input app-dict-file-input';
       uploadRow.appendChild(fileInput);
       var uploadButton = global.RtUI.button('上传 YAML', '');
+      uploadButton.id = global.uid('app-dict-upload');
       uploadRow.appendChild(uploadButton);
       uploadCard.body.appendChild(uploadRow);
       container.appendChild(uploadCard.element);
 
       var listCard = global.RtUI.card('模板列表');
+      listCard.element.id = global.uid('app-dict-list-card');
       var listHost = document.createElement('div');
+      listHost.id = global.uid('app-dict-list-host');
       listCard.body.appendChild(listHost);
       container.appendChild(listCard.element);
 
@@ -173,6 +188,7 @@
           listHost.innerHTML = '';
           templates.forEach(function (template) {
             var card = global.RtUI.card(template.template);
+            card.element.id = global.uid('app-dict-item-' + template.template);
             var info = document.createElement('div');
             info.className = 'app-detail-list';
             [
@@ -203,6 +219,7 @@
             var viewButton = document.createElement('button');
             viewButton.className = 'app-button app-dict-view-button';
             viewButton.type = 'button';
+            viewButton.id = global.uid('app-dict-view-' + template.template);
             viewButton.textContent = '查看属性';
             viewButton.addEventListener('click', function () {
               global.RtApi.getTemplate(template.template).then(function (detail) {
@@ -214,6 +231,7 @@
             var exportButton = document.createElement('button');
             exportButton.className = 'app-button app-dict-export-button';
             exportButton.type = 'button';
+            exportButton.id = global.uid('app-dict-export-' + template.template);
             exportButton.textContent = '导出 YAML';
             exportButton.addEventListener('click', function () {
               window.location.href = '/api/dictionaries/' +
@@ -225,6 +243,7 @@
               var deleteButton = document.createElement('button');
               deleteButton.className = 'app-button app-button-danger app-dict-delete-button';
               deleteButton.type = 'button';
+              deleteButton.id = global.uid('app-dict-delete-' + template.template);
               deleteButton.textContent = '删除';
               deleteButton.addEventListener('click', function () {
                 global.RtUI.confirm('删除模板', '确认删除自定义模板「' + template.template + '」？')
@@ -250,6 +269,7 @@
       function showAttributes(detail) {
         var host = document.createElement('div');
         host.className = 'app-dict-attr-host';
+        host.id = global.uid('app-dict-attr-host');
         var attributes = (detail.attributes || []).map(function (item) {
           return {
             id: item.id,

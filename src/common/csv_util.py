@@ -7,9 +7,12 @@ CSV 工具模块。
 
 格式约定：
     1. 文件包含以 # 开头的注释模板；
-    2. 有效数据行字段为 username,password,enabled,remark；
+    2. 有效数据行字段为 username,password,remark；
     3. 解析时自动跳过注释行与空行；
     4. 导出时保留注释模板，可直接作为下一次导入的数据基础。
+
+说明：
+    用户无「启用/停用」状态（该概念已在 20260910-V2 移除），所有用户默认可被测。
 """
 
 import csv
@@ -20,7 +23,7 @@ from .errors import ValidationError
 from .validator import is_valid_password, is_valid_username
 
 # 用户 CSV 表头
-USER_FIELDS = ("username", "password", "enabled", "remark")
+USER_FIELDS = ("username", "password", "remark")
 
 # users.csv 初始模板（项目书 10.2）
 USER_CSV_TEMPLATE = (
@@ -30,28 +33,35 @@ USER_CSV_TEMPLATE = (
     "#\n"
     "# username：用户名，必填；\n"
     "# password：密码，必填；\n"
-    "# enabled：是否启用，只允许true或false；\n"
     "# remark：备注，可为空；\n"
     "\n"
-    "username,password,enabled,remark\n"
+    "username,password,remark\n"
     "\n"
-    "# test001,123456,true,测试用户1\n"
-    "# test002,123456,true,测试用户2\n"
+    "# test001,123456,测试用户1\n"
+    "# test002,123456,测试用户2\n"
 )
 
 
-def _normalize_enabled(value: str) -> bool:
+def _remark_from_cells(cells: List[str], legacy_enabled: bool) -> str:
     """
-    把 enabled 字段归一化为布尔值。
+    从数据行提取 remark，兼容旧版含 enabled 列的 4 列格式。
 
-    允许：true/false（不区分大小写）、1/0、yes/no、是/否、空值视为 true。
+    历史格式为 username,password,enabled,remark；20260910-V2 起改为
+    username,password,remark。为不破坏用户已有 users.csv，按以下规则提取：
+        1. 表头标记为旧格式时，第 4 列为 remark；
+        2. 无表头但第 3 列形如 true/false 时，判定为旧格式，第 4 列为 remark；
+        3. 其余情况第 3 列为 remark。
     """
-    text = (value or "").strip().lower()
-    if text in ("", "true", "1", "yes", "y", "是", "on"):
-        return True
-    if text in ("false", "0", "no", "n", "否", "off"):
-        return False
-    raise ValidationError("enabled 字段取值非法", "实际=%s；只允许 true 或 false" % value)
+    if legacy_enabled:
+        return cells[3] if len(cells) > 3 else ""
+    if len(cells) >= 4 and cells[2].strip().lower() in ("true", "false"):
+        return cells[3]
+    return cells[2] if len(cells) > 2 else ""
+
+
+def _is_legacy_user_header(cells: List[str]) -> bool:
+    """判断表头是否为旧版含 enabled 列的格式。"""
+    return "enabled" in [c.lower() for c in cells]
 
 
 def parse_users_csv(text: str) -> List[dict]:
@@ -62,15 +72,17 @@ def parse_users_csv(text: str) -> List[dict]:
         text: CSV 文本内容
 
     返回：
-        用户字典列表，键为 username/password/enabled/remark。
+        用户字典列表，键为 username/password/remark。
 
     说明：
         # 开头的整行注释被跳过；空行被跳过；首行表头被跳过。
+        兼容旧版含 enabled 列的 4 列格式（remark 取第 4 列）。
     """
     users = []
     seen = set()
     reader = csv.reader(io.StringIO(text))
     header_passed = False
+    legacy_enabled = False
     for row in reader:
         if not row:
             continue
@@ -79,14 +91,14 @@ def parse_users_csv(text: str) -> List[dict]:
             continue
         cells = [c.strip() for c in row]
         if not header_passed:
-            # 遇到表头行，跳过
+            # 遇到表头行，跳过；记录是否为旧版含 enabled 列格式
             if [c.lower() for c in cells[:2]] == ["username", "password"]:
                 header_passed = True
+                legacy_enabled = _is_legacy_user_header(cells)
             continue
         username = cells[0]
         password = cells[1] if len(cells) > 1 else ""
-        enabled_raw = cells[2] if len(cells) > 2 else "true"
-        remark = cells[3] if len(cells) > 3 else ""
+        remark = _remark_from_cells(cells, legacy_enabled)
         if not is_valid_username(username):
             raise ValidationError("用户名非法", "用户名=%s" % username)
         if not is_valid_password(password):
@@ -97,7 +109,6 @@ def parse_users_csv(text: str) -> List[dict]:
         users.append({
             "username": username,
             "password": password,
-            "enabled": _normalize_enabled(enabled_raw),
             "remark": remark,
         })
     return users
@@ -134,6 +145,7 @@ def parse_users_csv_rows(text: str) -> Tuple[List[dict], List[dict]]:
     seen = set()
     reader = csv.reader(io.StringIO(text))
     header_passed = False
+    legacy_enabled = False
     for line_no, row in enumerate(reader, start=1):
         if not row:
             continue
@@ -147,13 +159,13 @@ def parse_users_csv_rows(text: str) -> Tuple[List[dict], List[dict]]:
         if not header_passed:
             if [c.lower() for c in cells[:2]] == ["username", "password"]:
                 header_passed = True
+                legacy_enabled = _is_legacy_user_header(cells)
                 continue
             # 首行不是表头：兼容无表头 CSV，本行直接按数据行解析
             header_passed = True
         username = cells[0]
         password = cells[1] if len(cells) > 1 else ""
-        enabled_raw = cells[2] if len(cells) > 2 else "true"
-        remark = cells[3] if len(cells) > 3 else ""
+        remark = _remark_from_cells(cells, legacy_enabled)
         if not is_valid_username(username):
             failures.append({
                 "line": line_no, "username": username, "reason": "用户名非法或为空"})
@@ -167,18 +179,11 @@ def parse_users_csv_rows(text: str) -> Tuple[List[dict], List[dict]]:
             failures.append({
                 "line": line_no, "username": username, "reason": "导入文件中存在重复用户名"})
             continue
-        try:
-            enabled = _normalize_enabled(enabled_raw)
-        except ValidationError:
-            failures.append({
-                "line": line_no, "username": username, "reason": "enabled 取值非法（只允许 true/false）"})
-            continue
         seen.add(username)
         users.append({
             "_line": line_no,
             "username": username,
             "password": password,
-            "enabled": enabled,
             "remark": remark,
         })
     return users, failures
@@ -198,7 +203,6 @@ def render_users_csv(users: List[dict]) -> str:
         writer.writerow([
             user.get("username", ""),
             user.get("password", ""),
-            "true" if user.get("enabled", True) else "false",
             user.get("remark", ""),
         ])
     return buffer.getvalue()

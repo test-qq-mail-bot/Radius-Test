@@ -7,13 +7,10 @@
     GET  /api/results/filters      筛选项去重取值（筛选联动）
     GET  /api/results/{id}         单条结果详情（含报文与属性）
     GET  /api/sessions             测试会话列表
-    GET  /api/packets              报文分页查询
-    GET  /api/packets/{id}         报文详情与属性匹配结果
     POST /api/results/clear        清空测试结果数据
 
 说明：
-    解析页面用于事后查询数据库中已保存的 RADIUS 报文，
-    不提供实时抓包能力（项目书用户确认口径）。
+    测试详情（/api/results/{id}）包含该用户最新的认证请求/响应报文与属性匹配结果。
 """
 
 import asyncio
@@ -141,36 +138,6 @@ async def list_sessions(page: int = Query(1, ge=1), page_size: int = Query(10, g
     """分页查询测试会话。"""
     rows, total = await _run_in_thread(dao.query_sessions, page, page_size)
     return {"rows": rows, "total": total, "page": page, "page_size": page_size}
-
-
-@router.get("/packets")
-async def list_packets(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=1000),
-    task_id: Optional[str] = Query(None),
-    username: Optional[str] = Query(None),
-    server: Optional[str] = Query(None),
-    packet_type: Optional[str] = Query(None),
-):
-    """分页查询已保存的 RADIUS 报文。"""
-    filters = {
-        "task_id": task_id,
-        "username": username,
-        "server": server,
-        "packet_type": packet_type,
-    }
-    filters = {k: v for k, v in filters.items() if v not in (None, "")}
-    rows, total = await _run_in_thread(dao.query_packets, filters, page, page_size)
-    return {"rows": rows, "total": total, "page": page, "page_size": page_size}
-
-
-@router.get("/packets/{packet_id}")
-async def packet_detail(packet_id: int):
-    """查询报文详情与属性匹配结果。"""
-    detail = await _run_in_thread(dao.get_packet_detail, packet_id)
-    if detail is None:
-        raise HTTPException(status_code=404, detail="报文不存在")
-    return detail
 
 
 @router.post("/results/clear")

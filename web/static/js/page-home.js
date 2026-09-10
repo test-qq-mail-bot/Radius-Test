@@ -5,6 +5,7 @@
   function metric(label, value, unit) {
     var box = document.createElement('div');
     box.className = 'app-metric';
+    box.id = global.uid('app-home-metric-' + String(label).replace(/[^A-Za-z0-9_-]/g, '_'));
     var labelNode = document.createElement('div');
     labelNode.className = 'app-metric-label';
     labelNode.textContent = label;
@@ -24,6 +25,7 @@
 
   function infoCard(title, pairs) {
     var card = global.RtUI.card(title);
+    card.element.id = global.uid('app-home-info-' + String(title).replace(/[^A-Za-z0-9_-]/g, '_'));
     var list = document.createElement('div');
     list.className = 'app-detail-list';
     pairs.forEach(function (pair) {
@@ -49,15 +51,19 @@
     render: function (container) {
       var grid = document.createElement('div');
       grid.className = 'app-grid app-grid-4';
+      grid.id = global.uid('app-home-grid');
       container.appendChild(grid);
 
       var summaryCard = global.RtUI.card('测试概况');
+      summaryCard.element.id = global.uid('app-home-summary-card');
       var summaryBody = document.createElement('div');
       summaryBody.className = 'app-grid app-grid-3';
+      summaryBody.id = global.uid('app-home-summary-body');
       summaryCard.body.appendChild(summaryBody);
       container.appendChild(summaryCard.element);
 
       var envCardHost = document.createElement('div');
+      envCardHost.id = global.uid('app-home-env-host');
       container.appendChild(envCardHost);
 
       function renderEmpty(host) {
@@ -75,6 +81,7 @@
         hint.className = 'app-empty-hint';
         hint.textContent = '前往「性能测试」页面发起一次 RADIUS 认证测试';
         var btn = global.RtUI.button('前往性能测试', 'primary');
+        btn.id = global.uid('app-home-goto-perf');
         btn.addEventListener('click', function () {
           location.hash = '#/perf';
         });
@@ -129,7 +136,7 @@
           var db = stats.database || {};
           var pool = stats.socket_pool || {};
           envCardHost.innerHTML = '';
-          envCardHost.appendChild(infoCard('运行环境', [
+          var envCard = infoCard('运行环境', [
             ['Python 版本', info.python_version],
             ['操作系统', info.platform],
             ['监听地址', (info.listen && info.listen.hosts || []).join('、') || '-'],
@@ -141,7 +148,9 @@
             ['Socket 池容量', pool.ipv4 ? pool.ipv4.capacity : 0],
             ['待写入任务', db.pending],
             ['已写入任务', db.written]
-          ]));
+          ]);
+          envCard.id = global.uid('app-home-env-card');
+          envCardHost.appendChild(envCard);
         });
       }
 

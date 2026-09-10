@@ -2,9 +2,20 @@
 (function (global) {
   'use strict';
 
-  var PAGES = ['home', 'server', 'user', 'perf', 'result', 'parse', 'dict', 'config'];
+  var PAGES = ['home', 'server', 'user', 'perf', 'result', 'dict', 'config'];
   var currentPage = 'home';
   var refreshHandler = null;
+
+  /* 生成页面内唯一 id（供自动化/测试定位元素使用）。
+     对 base 做合法字符清洗，并在文档中已存在同名时追加序号保证唯一。 */
+  function uid(base) {
+    base = String(base).replace(/[^A-Za-z0-9_-]/g, '_');
+    if (!base || /^[0-9]/.test(base)) base = 'e' + base;
+    var n = 1, id = base;
+    while (document.getElementById(id)) { id = base + '-' + (++n); }
+    return id;
+  }
+  global.uid = uid;
 
   var UI = {
     card: function (title, actions) {
@@ -68,10 +79,14 @@
       element.setAttribute('autocomplete', 'new-password');
       if (id) {
         element.id = id;
+        wrap.id = id + '-wrap';
       }
       var toggle = document.createElement('button');
       toggle.type = 'button';
       toggle.className = 'app-secret-toggle';
+      if (id) {
+        toggle.id = id + '-toggle';
+      }
       toggle.title = '显示 / 隐藏';
       toggle.setAttribute('aria-label', '显示或隐藏内容');
       toggle.setAttribute('aria-pressed', 'false');
@@ -99,6 +114,7 @@
       var kindName = kind || 'info';
       var node = document.createElement('div');
       node.className = 'app-toast app-toast-' + kindName;
+      node.id = global.uid('app-toast');
       node.title = '点击复制内容';
       var textSpan = document.createElement('span');
       textSpan.className = 'app-toast-text';
@@ -109,6 +125,7 @@
         var copyBtn = document.createElement('button');
         copyBtn.type = 'button';
         copyBtn.className = 'app-toast-copy';
+        copyBtn.id = node.id + '-copy';
         copyBtn.title = '复制内容';
         copyBtn.setAttribute('aria-label', '复制内容');
         copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" '
@@ -242,6 +259,7 @@
       var actions = buttons && buttons.length ? buttons : [];
       if (actions.length === 0) {
         var close = UI.button('关闭', '');
+        close.id = global.uid('app-modal-close-default');
         close.addEventListener('click', function () {
           UI.closeModal();
         });
@@ -264,7 +282,9 @@
     confirm: function (title, message, pairs) {
       return new Promise(function (resolve) {
         var okButton = UI.button('确定', 'primary');
+        okButton.id = global.uid('app-confirm-ok');
         var cancelButton = UI.button('取消', '');
+        cancelButton.id = global.uid('app-confirm-cancel');
         okButton.addEventListener('click', function () {
           UI.closeModal();
           resolve(true);

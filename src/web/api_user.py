@@ -65,8 +65,7 @@ async def create_user(payload: Dict[str, Any]):
     规则：
         1. username 为唯一键，已存在则覆盖更新该用户（不再报「用户名已存在」）；
         2. 密码为空且用户已存在时，保留原密码——密码留空代表不修改密码；
-        3. 新用户必须提供合法密码；
-        4. 覆盖更新时 enabled 保持原值不变（表单无该字段，避免误改启用状态）。
+        3. 新用户必须提供合法密码。
 
     返回 created / updated 标记，供前端区分「已新增」与「已更新」。
     """
@@ -95,7 +94,6 @@ async def create_user(payload: Dict[str, Any]):
     user = {
         "username": username,
         "password": password,
-        "enabled": bool(payload.get("enabled", True)),
         "remark": str(payload.get("remark") or ""),
     }
     users.append(user)
@@ -140,8 +138,6 @@ async def update_user(username: str, payload: Dict[str, Any]):
                 if not is_valid_password(payload["password"]):
                     raise HTTPException(status_code=400, detail="密码非法")
                 users[index]["password"] = str(payload["password"])
-            if "enabled" in payload:
-                users[index]["enabled"] = bool(payload["enabled"])
             if "remark" in payload:
                 users[index]["remark"] = str(payload["remark"] or "")
             _save_users(users)

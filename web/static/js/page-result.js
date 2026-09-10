@@ -1,7 +1,7 @@
-/* 测试结果页面：测试任务及结果查询。
+/* 测试用户详细信息页面：测试任务及结果查询。
  *
  * 表格行为严格遵循《数据表格需求描述》：
- *   默认用户名升序、每页 10 条、字段排序、字段筛选、
+ *   默认按测试时间倒序（最新在前）、每页 10 条、字段排序、字段筛选、
  *   多重筛选联动、筛选状态展示、分页数量切换。
  */
 (function (global) {
@@ -28,22 +28,28 @@
   }
 
   var Page = {
-    title: '测试结果',
+    title: '测试用户详细信息',
     desc: '测试任务及每次测试结果的查询与分析',
     render: function (container) {
       var sessionCard = global.RtUI.card('测试任务');
+      sessionCard.element.id = global.uid('app-result-session-card');
       var sessionHost = document.createElement('div');
+      sessionHost.id = global.uid('app-result-session-host');
       sessionCard.body.appendChild(sessionHost);
       container.appendChild(sessionCard.element);
 
-      var resultCard = global.RtUI.card('测试结果');
+      var resultCard = global.RtUI.card('测试用户详细信息');
+      resultCard.element.id = global.uid('app-result-detail-card');
       var tableHost = document.createElement('div');
+      tableHost.id = global.uid('app-result-table-host');
       resultCard.body.appendChild(tableHost);
       var actions = document.createElement('div');
       actions.className = 'app-form-row';
+      actions.id = global.uid('app-result-actions');
       var clearButton = document.createElement('button');
       clearButton.className = 'app-button app-button-danger app-result-clear-button';
       clearButton.type = 'button';
+      clearButton.id = global.uid('app-result-clear');
       clearButton.textContent = '清空测试数据';
       clearButton.addEventListener('click', function () {
         global.RtUI.confirm('清空数据', '确认清空全部测试结果、报文与属性数据？')
@@ -63,7 +69,8 @@
 
       var table = global.RtTable.create({
         container: tableHost,
-        defaultSortField: 'username',
+        defaultSortField: 'test_time',
+        defaultSortOrder: 'desc',
         columns: [
           {
             key: 'username',
@@ -130,14 +137,17 @@
 
       function showDetail(detail) {
         var host = document.createElement('div');
+        host.id = global.uid('app-result-detail-host');
 
         var infoTitle = document.createElement('div');
         infoTitle.className = 'app-detail-title';
+        infoTitle.id = global.uid('app-result-detail-info-title');
         infoTitle.textContent = '测试信息';
         host.appendChild(infoTitle);
 
         var infoList = document.createElement('div');
         infoList.className = 'app-detail-list';
+        infoList.id = global.uid('app-result-detail-info');
         var session = detail.session || {};
         [
           ['任务 ID', detail.task_id],
@@ -177,6 +187,7 @@
         packets.forEach(function (packet) {
           var title = document.createElement('div');
           title.className = 'app-detail-title';
+          title.id = global.uid('app-result-detail-packet-title-' + String(packet.packet_type || 'packet').replace(/[^A-Za-z0-9_-]/g, '_'));
           title.textContent = packet.packet_type || '报文';
           host.appendChild(title);
 
@@ -184,6 +195,7 @@
           attrWrap.className = 'app-table-wrap';
           var attrTable = document.createElement('table');
           attrTable.className = 'app-table';
+          attrTable.id = global.uid('app-result-detail-packet-' + String(packet.packet_type || 'packet').replace(/[^A-Za-z0-9_-]/g, '_'));
           var thead = document.createElement('thead');
           var headRow = document.createElement('tr');
           ['Radius模板', 'Name', 'Name_ZH', 'Type', 'Value'].forEach(function (text) {
@@ -232,6 +244,7 @@
           wrap.className = 'app-table-wrap';
           var tableEl = document.createElement('table');
           tableEl.className = 'app-table';
+          tableEl.id = global.uid('app-result-session-table');
           var thead = document.createElement('thead');
           var headRow = document.createElement('tr');
           ['任务 ID', '开始时间', '结束时间', 'Server', '协议', '并发', '速率', '停止原因'].forEach(function (text) {
