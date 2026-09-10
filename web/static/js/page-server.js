@@ -100,7 +100,7 @@
     desc: 'Server 配置与连通性测试',
     render: function (container) {
       var formCard = global.RtUI.card('新增 RADIUS Server');
-      formCard.element.id = uid('app-server-form-card');
+      formCard.identify('app-server-form-card');
       var form = document.createElement('form');
       form.className = 'app-form';
       form.id = uid('app-server-form');
@@ -438,7 +438,7 @@
           }
           servers.forEach(function (server) {
             var card = global.RtUI.card(server.name + (server.enabled ? '' : '（已停用）'));
-            card.element.id = uid('app-server-item-' + safeId(server.name));
+            card.identify('app-server-item-' + safeId(server.name));
             var info = document.createElement('div');
             info.className = 'app-detail-list';
             [

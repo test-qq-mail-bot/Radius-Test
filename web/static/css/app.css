@@ -1452,6 +1452,25 @@ code,
   letter-spacing: 0.5px;
 }
 
+/* 授权属性分区标题：比详情主标题低一级 */
+.app-detail-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 4px 0 8px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.3px;
+}
+
+/* 报文中无属性时的提示条 */
+.app-detail-note {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
 .app-detail-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

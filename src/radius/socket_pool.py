@@ -23,10 +23,12 @@ UDP 源端口 Socket 池模块。
 
 import asyncio
 import socket
+import time
 from typing import Dict, Optional
 
 from ..common.errors import RadiusError, RadiusTimeout
 from ..logging import logger
+from . import trace
 
 # 每个源端口可用的 Identifier 数量（1 字节）
 IDENTIFIERS_PER_SLOT = 256
@@ -268,6 +270,8 @@ class UdpSocketPool:
         port: int,
         timeout: float = 5.0,
         retry_count: int = 3,
+        signer=None,
+        on_sent=None,
     ) -> bytes:
         """
         发送 RADIUS 请求并等待响应。
@@ -278,6 +282,12 @@ class UdpSocketPool:
             port: 目标端口
             timeout: 单次等待超时（秒）
             retry_count: 最大尝试次数（含首次）
+            signer: 可选回调 signer(payload) -> payload。
+                在 Identifier 覆写之后调用，用于重算依赖 Identifier 的字段
+                （Accounting-Request 的 Request Authenticator 必须如此，
+                 见 RFC 2866 3）。
+            on_sent: 可选回调 on_sent(payload)，在报文真正发出后调用，
+                传入最终字节串，便于上屏/落库展示真实报文。
 
         返回：
             响应报文字节串。
@@ -294,18 +304,34 @@ class UdpSocketPool:
         packet = bytearray(data)
         packet[1] = identifier
         payload = bytes(packet)
+        if signer is not None:
+            payload = signer(payload)
+        if on_sent is not None:
+            on_sent(payload)
         future = slot.register(identifier)
         try:
             attempt = 0
             last_error = ""
             while attempt < max(1, retry_count):
                 attempt += 1
+                started = time.perf_counter()
                 try:
                     slot.send(payload, host, port, identifier)
                     response, _addr = await asyncio.wait_for(asyncio.shield(future), timeout)
+                    trace.record_send(
+                        module="radius", host=host, port=port, identifier=identifier,
+                        payload=payload, response=response,
+                        elapsed_ms=(time.perf_counter() - started) * 1000,
+                        attempt=attempt, retry_count=retry_count, slot=slot.index,
+                    )
                     return response
                 except asyncio.TimeoutError:
                     last_error = "第 %d 次尝试超时（%.1f 秒）" % (attempt, timeout)
+                    trace.record_timeout(
+                        module="radius", host=host, port=port, identifier=identifier,
+                        payload=payload, elapsed_ms=(time.perf_counter() - started) * 1000,
+                        attempt=attempt, retry_count=retry_count, slot=slot.index,
+                    )
                     if future.done():
                         break
                     continue
@@ -372,10 +398,13 @@ class SocketPoolManager:
         timeout: float = 5.0,
         retry_count: int = 3,
         source_address: str = "",
+        signer=None,
+        on_sent=None,
     ) -> bytes:
         """发送 RADIUS 请求并等待响应。"""
         pool = await self.get_pool(host, source_address)
-        return await pool.send_request(data, host, port, timeout, retry_count)
+        return await pool.send_request(data, host, port, timeout, retry_count,
+                                       signer=signer, on_sent=on_sent)
 
     def stats(self) -> dict:
         """返回 Socket 池统计信息，供系统信息接口使用。"""

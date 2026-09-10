@@ -102,6 +102,10 @@ async def start_task(payload: Dict[str, Any]):
         raise HTTPException(status_code=400, detail="没有可用的测试用户")
 
     config = loader.load_config()
+    # 每个 Server 可单独配置「计费间隔」；为 0 时沿用全局 test.interim_interval
+    server_interval = int(server.get("accounting_interval") or 0)
+    interim_interval = server_interval if server_interval > 0 \
+        else int(config["test"]["interim_interval"])
     options = {
         "server_name": server_name,
         "protocol": protocol,
@@ -111,13 +115,18 @@ async def start_task(payload: Dict[str, Any]):
         "save_packets": bool(payload.get(
             "save_packets", config["storage"]["save_packets"])),
         "enable_accounting": bool(payload.get("enable_accounting", True)),
-        "interim_interval": int(config["test"]["interim_interval"]),
+        "interim_interval": interim_interval,
         "interim_max_fail": int(config["test"]["interim_max_fail"]),
         "peer_challenge_bytes": int(config["radius"]["mschap_peer_challenge_bytes"]),
         "online_criteria": str(
             payload.get("online_criteria")
             or config["test"].get("online_criteria")
             or "accounting"),
+        "accounting_timeout": float(config["test"].get("accounting_timeout") or 1.0),
+        "accounting_retry_count": int(config["test"].get("accounting_retry_count") or 1),
+        "accounting_message_authenticator": bool(
+            config["test"].get("accounting_message_authenticator")),
+        "packet_trace_limit": int(config.get("log", {}).get("packet_trace_limit") or 0),
     }
     if options["online_criteria"] not in ("accounting", "auth"):
         raise HTTPException(status_code=400, detail="在线判定依据非法，可选 accounting / auth")

@@ -6,16 +6,67 @@
   var currentPage = 'home';
   var refreshHandler = null;
 
+  /* 已分配过的 id 集合。
+     只用 document.getElementById 判重是不够的：尚未插入文档的元素
+     （如先建后挂的卡片、弹窗内容）查不到，会出现重名。
+     因此维护一份全局登记表，保证全站 id 唯一。 */
+  var USED_IDS = {};
+
   /* 生成页面内唯一 id（供自动化/测试定位元素使用）。
-     对 base 做合法字符清洗，并在文档中已存在同名时追加序号保证唯一。 */
+     对 base 做合法字符清洗，并在已登记时追加序号保证唯一。 */
   function uid(base) {
     base = String(base).replace(/[^A-Za-z0-9_-]/g, '_');
     if (!base || /^[0-9]/.test(base)) base = 'e' + base;
     var n = 1, id = base;
-    while (document.getElementById(id)) { id = base + '-' + (++n); }
+    while (USED_IDS[id] || document.getElementById(id)) { id = base + '-' + (++n); }
+    USED_IDS[id] = true;
     return id;
   }
   global.uid = uid;
+
+  /* 不需要命名的标签：脚本、样式、文档级元信息 */
+  var UNNAMED_TAGS = {
+    script: 1, style: 1, meta: 1, link: 1, title: 1, head: 1, html: 1, base: 1
+  };
+
+  /* 为无 id 的元素生成兜底 id。
+     命名规则：app-el-<标签>-<首个类名>，重复时由 uid() 追加序号。
+     这样「文本、图片、表头、单元格、下拉选项」等任意元素都有唯一 id，
+     需要语义化命名的关键组件仍由各页面显式指定。 */
+  function nameElement(node) {
+    if (!node || node.nodeType !== 1) return;
+    if (node.hasAttribute('id')) return;
+    var tag = String(node.tagName || '').toLowerCase();
+    if (UNNAMED_TAGS[tag]) return;
+    var cls = (typeof node.className === 'string' && node.className)
+      ? node.className.split(' ')[0] : '';
+    node.id = uid('app-el-' + tag + (cls ? '-' + cls : ''));
+  }
+
+  /* 遍历子树，补齐全部缺失的 id */
+  function nameElements(root) {
+    if (!root || root.nodeType !== 1) return;
+    nameElement(root);
+    var nodes = root.querySelectorAll('*');
+    for (var i = 0; i < nodes.length; i += 1) {
+      nameElement(nodes[i]);
+    }
+  }
+  global.RtNameElements = nameElements;
+
+  /* 监听后续动态插入的节点（表格行、弹窗、提示条、实时指标等），
+     保证运行过程中产生的元素同样具备唯一 id。 */
+  function watchNewElements() {
+    if (typeof MutationObserver !== 'function') return;
+    var observer = new MutationObserver(function (records) {
+      records.forEach(function (record) {
+        Array.prototype.forEach.call(record.addedNodes, function (node) {
+          nameElements(node);
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
 
   var UI = {
     card: function (title, actions) {
@@ -27,8 +78,9 @@
       titleNode.className = 'app-card-title';
       titleNode.textContent = title;
       header.appendChild(titleNode);
+      var actionHost = null;
       if (actions && actions.length) {
-        var actionHost = document.createElement('div');
+        actionHost = document.createElement('div');
         actionHost.className = 'app-card-actions';
         actions.forEach(function (action) {
           actionHost.appendChild(action);
@@ -39,7 +91,23 @@
       body.className = 'app-card-body';
       element.appendChild(header);
       element.appendChild(body);
-      return { element: element, body: body };
+      /* 一次性命名卡片及其内部结构：卡片/id、标题/id-title、主体/id-body、
+         操作区/id-actions，保证卡片内每个元素都有可定位的唯一 id。 */
+      var card = {
+        element: element,
+        body: body,
+        identify: function (prefix) {
+          element.id = uid(prefix);
+          header.id = element.id + '-header';
+          titleNode.id = element.id + '-title';
+          body.id = element.id + '-body';
+          if (actionHost) {
+            actionHost.id = element.id + '-actions';
+          }
+          return element.id;
+        }
+      };
+      return card;
     },
 
     /* 按钮统一无图标。
@@ -514,6 +582,8 @@
       if (stale) {
         stale.remove();
       }
+      // 页面渲染完成后再补一轮兜底命名，确保首屏元素全部具备 id
+      nameElements(container);
     }).catch(function (error) {
       container.innerHTML = '';
       var errorNode = document.createElement('div');
@@ -550,6 +620,10 @@
   }
 
   function init() {
+    // 先给静态外壳（侧栏、导航、页头）补齐 id，再监听后续动态插入的元素
+    nameElements(document.body);
+    watchNewElements();
+
     global.addEventListener('hashchange', function () {
       renderPage(currentRoute());
     });

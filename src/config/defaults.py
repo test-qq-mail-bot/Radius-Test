@@ -27,6 +27,9 @@ DEFAULT_CONFIG = {
     "log": {
         # 日志等级：DEBUG / INFO / WARNING / ERROR / CRITICAL
         "level": "INFO",
+        # DEBUG 级下每个测试任务最多输出多少条报文收发明细（0 表示不限）
+        # 压测时每秒可能产生上万条报文，用于避免日志风暴
+        "packet_trace_limit": 200,
     },
     "test": {
         # 测试速率：每秒发起的完整认证会话数
@@ -37,7 +40,13 @@ DEFAULT_CONFIG = {
         "timeout": 5.0,
         # 超时重试次数
         "retry_count": 3,
-        # 计费 Interim-Update 间隔（秒），0 表示不发送
+        # 计费报文单次等待超时（秒），独立于认证超时，避免计费不可用时长时间挂起
+        "accounting_timeout": 1.0,
+        # 计费报文重试次数
+        "accounting_retry_count": 1,
+        # 计费报文是否附加 Message-Authenticator（仅在服务端明确要求时开启）
+        "accounting_message_authenticator": False,
+        # 计费 Interim-Update 间隔（秒），0 表示不发送；Server 配置的「计费间隔」优先
         "interim_interval": 60,
         # 连续多少次 Interim-Update 失败判定为掉线
         "interim_max_fail": 3,
@@ -121,12 +130,19 @@ web:
 
 log:
   level: INFO
+  # DEBUG 级下每个测试任务最多输出多少条报文收发明细（0 表示不限）
+  packet_trace_limit: 200
 
 test:
   rate: 10
   max_concurrency: 10000
   timeout: 5.0
   retry_count: 3
+  # 计费报文单次等待超时（秒）与重试次数，独立于认证超时
+  accounting_timeout: 1.0
+  accounting_retry_count: 1
+  # 计费报文是否附加 Message-Authenticator（仅在服务端明确要求时开启）
+  accounting_message_authenticator: false
   interim_interval: 60
   interim_max_fail: 3
   # 在线判定依据：accounting=计费上线成功才算在线（默认）；auth=认证成功即在线

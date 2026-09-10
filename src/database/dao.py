@@ -169,6 +169,58 @@ def save_result(result: Dict[str, Any]) -> None:
     )
 
 
+def upsert_result(result: Dict[str, Any]) -> None:
+    """
+    写入或更新单条测试结果（以 task_id + username 唯一）。
+
+    参数：
+        result: 测试结果字段字典
+
+    说明：
+        一次用户登录会经历「认证成功」与「计费返回」两个阶段，
+        需要先落一条结果、随后原地更新：
+            1. 避免同一用户出现重复行；
+            2. 避免计费挂起期间任务被取消时结果完全丢失。
+        两条语句由异步写队列串行执行，顺序有保证；
+        不使用 UNIQUE 约束是为了兼容历史数据库中可能存在的重复行。
+    """
+    writer = _get_writer()
+    key = (result.get("task_id", ""), result.get("username", ""))
+    writer.submit(
+        "UPDATE test_results SET test_time = ?, online = ?, success = ?, status = ?, "
+        "response_time = ?, error = ? WHERE task_id = ? AND username = ?",
+        (
+            result.get("test_time", ""),
+            1 if result.get("online") else 0,
+            1 if result.get("success") else 0,
+            result.get("status", ""),
+            result.get("response_time", 0.0),
+            result.get("error", ""),
+            key[0],
+            key[1],
+        ),
+    )
+    writer.submit(
+        "INSERT INTO test_results "
+        "(task_id, username, server, test_time, online, success, status, response_time, error) "
+        "SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS "
+        "(SELECT 1 FROM test_results WHERE task_id = ? AND username = ?)",
+        (
+            key[0],
+            key[1],
+            result.get("server", ""),
+            result.get("test_time", ""),
+            1 if result.get("online") else 0,
+            1 if result.get("success") else 0,
+            result.get("status", ""),
+            result.get("response_time", 0.0),
+            result.get("error", ""),
+            key[0],
+            key[1],
+        ),
+    )
+
+
 def save_packet(packet: Dict[str, Any], packet_id: int = None) -> int:
     """
     写入单条报文明细。

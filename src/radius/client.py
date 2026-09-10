@@ -3,13 +3,14 @@
 RADIUS 客户端模块。
 
 职责：
-    1. 构造 Access-Request（PAP / CHAP / MS-CHAP v1 / MS-CHAP v2 / EAP-MD5）；
+    1. 驱动 Access-Request 认证（PAP / CHAP / MS-CHAP v1 / MS-CHAP v2 / EAP-MD5）；
     2. 驱动 EAP-MD5 多轮交互；
-    3. 构造并发送 Accounting-Request（Start / Interim-Update / Stop）；
+    3. 发送 Accounting-Request（Start / Interim-Update / Stop）；
     4. 统一返回结构化的测试结果。
 
 说明：
-    本模块不负责并发控制与限速，相关能力由 performance 与 testing 包提供。
+    本模块不负责并发控制与限速，相关能力由 performance 与 testing 包提供；
+    报文构造细节见 radius.builder。
 """
 
 import time
@@ -24,22 +25,14 @@ from ..common.errors import RadiusError, RadiusTimeout
 from ..logging import logger
 from . import attributes as attr_mod
 from . import authenticator as auth_mod
+from . import builder
 from . import codes
-from .packet import RadiusPacket, decode_packet, encode_packet
+from .packet import RadiusPacket, decode_packet
 
 # EAP 多轮交互最大轮次，防止服务端异常导致死循环
 MAX_EAP_ROUNDS = 12
-# RADIUS 标准属性编号
+# RADIUS 标准属性编号（State 仅 EAP 多轮交互使用）
 ATTR_STATE = 24
-ATTR_NAS_PORT = 5
-ATTR_CALLED_STATION_ID = 30
-ATTR_CALLING_STATION_ID = 31
-ATTR_ACCT_AUTHENTIC = 45
-ATTR_ACCT_INPUT_OCTETS = 42
-ATTR_ACCT_OUTPUT_OCTETS = 43
-ATTR_ACCT_SESSION_TIME = 46
-ATTR_ACCT_INPUT_PACKETS = 47
-ATTR_ACCT_OUTPUT_PACKETS = 48
 
 
 class RadiusResult:
@@ -116,65 +109,30 @@ class RadiusClient:
         return eff
 
     def _base_attributes(self, server: dict, username: str) -> list:
-        """
-        构造认证请求的基础属性。
-
-        包含：User-Name、NAS-IP-Address、NAS-Port、
-        Called-Station-Id、Calling-Station-Id。
-        """
-        result = [(codes.ATTR_USER_NAME, username.encode("utf-8"))]
-        nas_ip = str(server.get("nas_ip_address", "")).strip()
-        if nas_ip:
-            try:
-                result.append((codes.ATTR_NAS_IP_ADDRESS,
-                               codes.encode_value(codes.TYPE_IPADDR, nas_ip)))
-            except Exception as exc:
-                # 地址非法时记录告警，而不是静默丢弃
-                logger.warning("radius", "NAS IP 地址编码失败，已跳过该属性", {
-                    "nas_ip": nas_ip,
-                    "error": str(exc),
-                })
-        result.append((ATTR_NAS_PORT, (1).to_bytes(4, "big")))
-        result.append((ATTR_CALLED_STATION_ID, b"00-00-00-00-00-00:Radius-Test"))
-        result.append((ATTR_CALLING_STATION_ID, b"02-00-00-00-00-01"))
-        return result
+        """构造认证请求的基础属性（实现见 radius.builder）。"""
+        return builder.base_attributes(server, username)
 
     def _build_packet(self, code: int, request_authenticator: bytes,
                       attributes: list, secret: bytes) -> bytes:
+        """构造完整报文，含 EAP 场景下的 Message-Authenticator（实现见 radius.builder）。"""
+        return builder.build_access_packet(code, request_authenticator, attributes, secret)
+
+    async def _send(self, server: dict, packet: bytes, port: int,
+                    signer=None, on_sent=None) -> bytes:
         """
-        构造完整报文。
+        发送报文并返回响应字节串。
 
-        Message-Authenticator（属性 80）仅在报文包含 EAP-Message（属性 79）
-        时追加，符合 RFC 2869 5.14「仅当使用 EAP 时必须携带」的要求。
-        PAP / CHAP / MS-CHAP / Accounting 等非 EAP 报文不携带该属性，
-        避免部分服务端（如华为 AgileController）对无法校验的
-        Message-Authenticator 静默丢弃导致超时。
-
-        流程（仅 EAP 报文）：
-            1. 追加 Message-Authenticator 占位属性（值为 16 字节零）；
-            2. 计算报文长度并计算 HMAC-MD5；
-            3. 回填真实值。
+        参数：
+            signer: 发送前签名回调（Identifier 覆写后调用）
+            on_sent: 报文真正发出后的回调，用于取回最终字节串
         """
-        attribute_bytes = attr_mod.encode_attributes(attributes)
-        has_eap = any(attr_id == codes.ATTR_EAP_MESSAGE
-                      for attr_id, _ in attributes)
-        if has_eap:
-            attribute_bytes += auth_mod.build_message_authenticator_placeholder()
-            length = 20 + len(attribute_bytes)
-            mac = auth_mod.compute_message_authenticator(
-                code, 0, length, request_authenticator, attribute_bytes, secret
-            )
-            attribute_bytes = auth_mod.replace_message_authenticator(attribute_bytes, mac)
-        return encode_packet(code, 0, request_authenticator, attribute_bytes)
-
-    async def _send(self, server: dict, packet: bytes, port: int) -> bytes:
-        """发送报文并返回响应字节串。"""
         host = self._resolve_address(server)
         timeout = float(server.get("timeout") or 5.0)
         retry = int(server.get("retry_count") or 3)
         source_address = str(server.get("source_address") or "").strip()
         return await self._manager.send_request(
-            packet, host, port, timeout, retry, source_address)
+            packet, host, port, timeout, retry, source_address,
+            signer=signer, on_sent=on_sent)
 
     # ---------------- 认证 ----------------
 
@@ -351,7 +309,10 @@ class RadiusClient:
     async def send_accounting(self, server: dict, username: str,
                               acct_status_type: int, session_id: str = None,
                               session_time: int = 0, input_octets: int = 0,
-                              output_octets: int = 0) -> RadiusResult:
+                              output_octets: int = 0,
+                              message_authenticator: bool = False,
+                              timeout: float = 0.0,
+                              retry_count: int = 0) -> RadiusResult:
         """
         发送一次 Accounting-Request。
 
@@ -363,41 +324,67 @@ class RadiusClient:
             session_time: 会话时长（秒）
             input_octets: 入方向字节数
             output_octets: 出方向字节数
+            message_authenticator: 是否附加 Message-Authenticator（部分 NAC 强制要求）
+            timeout: 单次等待超时（秒），0 表示沿用 Server 配置
+            retry_count: 重试次数，0 表示沿用 Server 配置
 
         返回：
             RadiusResult 对象。
+
+        说明：
+            Request Authenticator 不能使用随机数（RFC 2866 3），
+            必须按 MD5(Code + Identifier + Length + 16 个零字节 + 属性 + 密钥) 计算；
+            由于 Identifier 在发送时才由 Socket 池分配，签名通过 signer 回调完成。
         """
         started = time.perf_counter()
         result = RadiusResult()
         # 路由到专用 RADIUS 计费服务器（缺省回退通用 server_address / shared_secret）
         effective = self._acct_effective(server)
-        request_auth = auth_mod.new_request_authenticator()
+        if timeout and timeout > 0:
+            effective["timeout"] = float(timeout)
+        if retry_count and retry_count > 0:
+            effective["retry_count"] = int(retry_count)
         secret = self._secret(effective)
         session_id = session_id or uuid_util.new_radius_session_id()
         attributes = self._base_attributes(effective, username)
         attributes.append((codes.ATTR_ACCT_STATUS_TYPE, acct_status_type.to_bytes(4, "big")))
         attributes.append((codes.ATTR_ACCT_SESSION_ID, session_id.encode("utf-8")))
-        attributes.append((ATTR_ACCT_AUTHENTIC, (1).to_bytes(4, "big")))
+        attributes.append((builder.ATTR_ACCT_AUTHENTIC, (1).to_bytes(4, "big")))
         if acct_status_type in (codes.ACCT_STATUS_STOP, codes.ACCT_STATUS_INTERIM_UPDATE):
-            attributes.append((ATTR_ACCT_SESSION_TIME, int(session_time).to_bytes(4, "big")))
-            attributes.append((ATTR_ACCT_INPUT_OCTETS, int(input_octets).to_bytes(4, "big")))
-            attributes.append((ATTR_ACCT_OUTPUT_OCTETS, int(output_octets).to_bytes(4, "big")))
-            attributes.append((ATTR_ACCT_INPUT_PACKETS, (1).to_bytes(4, "big")))
-            attributes.append((ATTR_ACCT_OUTPUT_PACKETS, (1).to_bytes(4, "big")))
-        packet = self._build_packet(codes.ACCOUNTING_REQUEST, request_auth, attributes, secret)
+            attributes.append((builder.ATTR_ACCT_SESSION_TIME, int(session_time).to_bytes(4, "big")))
+            attributes.append((builder.ATTR_ACCT_INPUT_OCTETS, int(input_octets).to_bytes(4, "big")))
+            attributes.append((builder.ATTR_ACCT_OUTPUT_OCTETS, int(output_octets).to_bytes(4, "big")))
+            attributes.append((builder.ATTR_ACCT_INPUT_PACKETS, (1).to_bytes(4, "big")))
+            attributes.append((builder.ATTR_ACCT_OUTPUT_PACKETS, (1).to_bytes(4, "big")))
+        packet = builder.build_accounting_packet(attributes, message_authenticator)
         result.request_packet = decode_packet(packet)
         port = int(effective.get("accounting_port") or 1813)
+        signer = builder.accounting_signer(secret, message_authenticator)
+        sent = {}
+
+        def remember(payload: bytes) -> None:
+            """记下真实发出的报文，供结果展示与报文落库使用。"""
+            sent["payload"] = payload
+
         try:
-            response = await self._send(effective, packet, port)
+            response = await self._send(effective, packet, port,
+                                        signer=signer, on_sent=remember)
         except RadiusTimeout as exc:
+            builder.remember_request(result, sent)
+            builder.trace_accounting(username, acct_status_type, session_id, sent, started, "")
             result.response_time_ms = (time.perf_counter() - started) * 1000
             result.error = "超时；%s" % exc.detail
             result.code_name = "Timeout"
+            result.extra["acct_session_id"] = session_id
             return result
         except RadiusError as exc:
+            builder.remember_request(result, sent)
+            builder.trace_accounting(username, acct_status_type, session_id, sent, started, "")
             result.response_time_ms = (time.perf_counter() - started) * 1000
             result.error = str(exc)
+            result.extra["acct_session_id"] = session_id
             return result
+        builder.remember_request(result, sent)
         result.response_time_ms = (time.perf_counter() - started) * 1000
         packet_obj = decode_packet(response)
         result.response_packet = packet_obj
@@ -407,9 +394,12 @@ class RadiusClient:
         attribute_bytes = packet_obj.raw[20:] if len(packet_obj.raw) > 20 else b""
         result.authenticator_valid = auth_mod.verify_response_authenticator(
             packet_obj.code, packet_obj.identifier, packet_obj.length,
-            request_auth, attribute_bytes, secret, packet_obj.authenticator,
+            sent.get("payload", packet)[4:20], attribute_bytes, secret,
+            packet_obj.authenticator,
         )
         if not result.success:
             result.error = "未预期的响应类型：%s" % packet_obj.code_name
         result.extra["acct_session_id"] = session_id
+        builder.trace_accounting(username, acct_status_type, session_id, sent, started,
+                          result.code_name)
         return result

@@ -25,7 +25,7 @@
 
   function infoCard(title, pairs) {
     var card = global.RtUI.card(title);
-    card.element.id = global.uid('app-home-info-' + String(title).replace(/[^A-Za-z0-9_-]/g, '_'));
+    card.identify('app-home-info-' + String(title).replace(/[^A-Za-z0-9_-]/g, '_'));
     var list = document.createElement('div');
     list.className = 'app-detail-list';
     pairs.forEach(function (pair) {
@@ -55,7 +55,7 @@
       container.appendChild(grid);
 
       var summaryCard = global.RtUI.card('测试概况');
-      summaryCard.element.id = global.uid('app-home-summary-card');
+      summaryCard.identify('app-home-summary-card');
       var summaryBody = document.createElement('div');
       summaryBody.className = 'app-grid app-grid-3';
       summaryBody.id = global.uid('app-home-summary-body');

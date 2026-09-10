@@ -58,7 +58,7 @@
     render: function (container) {
       var controls = {};
       var setupCard = global.RtUI.card('测试参数');
-      setupCard.element.id = global.uid('app-perf-setup-card');
+      setupCard.identify('app-perf-setup-card');
       var form = document.createElement('div');
       form.className = 'app-form';
       form.id = global.uid('app-perf-form');
@@ -212,7 +212,7 @@
       container.appendChild(setupCard.element);
 
       var metricsCard = global.RtUI.card('实时指标');
-      metricsCard.element.id = global.uid('app-perf-metrics-card');
+      metricsCard.identify('app-perf-metrics-card');
       var metricsHost = document.createElement('div');
       metricsHost.className = 'app-grid app-grid-4';
       metricsHost.id = global.uid('app-perf-metrics-host');

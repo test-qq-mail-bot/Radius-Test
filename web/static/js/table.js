@@ -87,13 +87,16 @@
     var self = this;
     this.thead.innerHTML = '';
     var row = createElement('tr', 'app-table-header-row');
+    row.id = this.id + '-head-row';
     this.columns.forEach(function (column) {
       var th = createElement('th', 'app-table-header-cell');
       th.dataset.field = column.key;
       th.id = self.id + '-th-' + column.key;
       var inner = createElement('div', 'app-table-th-inner');
+      inner.id = th.id + '-inner';
 
       var label = createElement('span', 'app-table-th-label', column.label);
+      label.id = th.id + '-label';
       label.addEventListener('click', function (event) {
         if (column.sortable !== false) {
           self._toggleSort(column.key, event);
@@ -116,6 +119,7 @@
         filterButton.title = '筛选';
         var filterIcon = document.createElement('img');
         filterIcon.className = 'app-table-filter-icon';
+        filterIcon.id = filterButton.id + '-icon';
         filterIcon.src = '/static/svg/table-filter.svg';
         filterIcon.alt = '';
         filterButton.appendChild(filterIcon);
@@ -259,7 +263,9 @@
     var options = this.options[column.key] || [];
     var selected = this.filters[column.key] || [];
     if (options.length === 0) {
-      panel.appendChild(createElement('div', 'app-filter-option', '（无可用选项）'));
+      var noOption = createElement('div', 'app-filter-option', '（无可用选项）');
+      noOption.id = panelPrefix + 'empty';
+      panel.appendChild(noOption);
     }
     options.forEach(function (option) {
       var optionSafe = String(option.value).replace(/[^A-Za-z0-9_-]/g, '_') || 'x';
@@ -273,6 +279,7 @@
       input.checked = selected.indexOf(option.value) >= 0;
       var text = createElement('span', 'app-filter-option-text',
         option.value + ' (' + (option.count || 0) + ')');
+      text.id = label.id + '-text';
       label.appendChild(input);
       label.appendChild(text);
       panel.appendChild(label);
@@ -425,6 +432,7 @@
     this.table.hidden = false;
     this.rows.forEach(function (row, index) {
       var tr = createElement('tr', 'app-table-row');
+      tr.id = self.id + '-row-' + index;
       tr.dataset.index = String(index);
       if (self.rowClassName) {
         var extraClass = self.rowClassName(row, index);
@@ -434,6 +442,7 @@
       }
       self.columns.forEach(function (column) {
         var td = createElement('td', 'app-table-cell');
+        td.id = tr.id + '-cell-' + column.key;
         td.dataset.field = column.key;
         if (column.render) {
           var node = column.render(row, index);
@@ -500,6 +509,7 @@
     PAGE_SIZES.forEach(function (size) {
       var option = document.createElement('option');
       option.value = String(size);
+      option.id = self.id + '-page-size-' + size;
       option.textContent = size + ' 条/页';
       if (size === self.pageSize) {
         option.selected = true;

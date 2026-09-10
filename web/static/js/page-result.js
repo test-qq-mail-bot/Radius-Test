@@ -28,18 +28,18 @@
   }
 
   var Page = {
-    title: '测试用户详细信息',
+    title: '测试结果',
     desc: '测试任务及每次测试结果的查询与分析',
     render: function (container) {
       var sessionCard = global.RtUI.card('测试任务');
-      sessionCard.element.id = global.uid('app-result-session-card');
+      sessionCard.identify('app-result-session-card');
       var sessionHost = document.createElement('div');
       sessionHost.id = global.uid('app-result-session-host');
       sessionCard.body.appendChild(sessionHost);
       container.appendChild(sessionCard.element);
 
       var resultCard = global.RtUI.card('测试用户详细信息');
-      resultCard.element.id = global.uid('app-result-detail-card');
+      resultCard.identify('app-result-detail-card');
       var tableHost = document.createElement('div');
       tableHost.id = global.uid('app-result-table-host');
       resultCard.body.appendChild(tableHost);
@@ -162,20 +162,88 @@
           ['任务协议', session.protocol || '-'],
           ['任务并发', session.concurrency || '-'],
           ['任务速率', session.rate || '-']
-        ].forEach(function (pair) {
+        ].forEach(function (pair, index) {
           var item = document.createElement('div');
           item.className = 'app-detail-item';
+          item.id = global.uid('app-result-detail-info-item-' + index);
           var key = document.createElement('span');
           key.className = 'app-detail-key';
+          key.id = item.id + '-key';
           key.textContent = pair[0];
           var value = document.createElement('span');
           value.className = 'app-detail-value';
+          value.id = item.id + '-value';
           value.textContent = String(pair[1] === undefined || pair[1] === null ? '-' : pair[1]);
           item.appendChild(key);
           item.appendChild(value);
           infoList.appendChild(item);
         });
         host.appendChild(infoList);
+
+        // 授权属性：按「隧道/VLAN、QoS 限速、安全组/ACL、会话控制、其它」分区展示，
+        // 数据来自最新响应报文的属性解析结果（含厂商私有属性 VSA）。
+        var authTitle = document.createElement('div');
+        authTitle.className = 'app-detail-title';
+        authTitle.id = global.uid('app-result-authz-title');
+        authTitle.textContent = '授权属性';
+        host.appendChild(authTitle);
+
+        var groups = detail.authorization_groups || [];
+        if (groups.length === 0) {
+          var authEmpty = document.createElement('div');
+          authEmpty.className = 'app-detail-note';
+          authEmpty.id = global.uid('app-result-authz-empty');
+          authEmpty.textContent = '服务端返回的响应报文未携带任何授权属性'
+            + '（未下发 VLAN / QoS 限速 / 安全组 等），请检查接入设备侧的授权规则。';
+          host.appendChild(authEmpty);
+        }
+        groups.forEach(function (group) {
+          var groupTitle = document.createElement('div');
+          groupTitle.className = 'app-detail-subtitle';
+          groupTitle.id = global.uid('app-result-authz-group-' + group.category);
+          groupTitle.textContent = group.category_zh;
+          host.appendChild(groupTitle);
+
+          var wrap = document.createElement('div');
+          wrap.className = 'app-table-wrap';
+          wrap.id = global.uid('app-result-authz-wrap-' + group.category);
+          var table = document.createElement('table');
+          table.className = 'app-table';
+          table.id = global.uid('app-result-authz-table-' + group.category);
+          var thead = document.createElement('thead');
+          var headRow = document.createElement('tr');
+          headRow.id = table.id + '-head-row';
+          ['属性', '中文名称', '取值', '来源', '说明'].forEach(function (text) {
+            var th = document.createElement('th');
+            th.id = global.uid(table.id + '-th-' + text);
+            th.textContent = text;
+            headRow.appendChild(th);
+          });
+          thead.appendChild(headRow);
+          var tbody = document.createElement('tbody');
+          tbody.id = table.id + '-body';
+          group.items.forEach(function (item) {
+            var tr = document.createElement('tr');
+            tr.id = global.uid(table.id + '-row-' + item.name);
+            [
+              item.name,
+              item.name_zh,
+              item.display,
+              item.template,
+              item.description || '-'
+            ].forEach(function (value, index) {
+              var td = document.createElement('td');
+              td.id = tr.id + '-cell-' + index;
+              td.textContent = value === undefined || value === null ? '' : String(value);
+              tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+          table.appendChild(thead);
+          table.appendChild(tbody);
+          wrap.appendChild(table);
+          host.appendChild(wrap);
+        });
 
         var packets = detail.packets || [];
         if (packets.length === 0) {
@@ -191,30 +259,47 @@
           title.textContent = packet.packet_type || '报文';
           host.appendChild(title);
 
+          var packetAttributes = packet.attributes || [];
+          if (packetAttributes.length === 0) {
+            // 服务端确实没有下发任何属性时给出明确说明，避免误判为解析失败
+            var emptyNote = document.createElement('div');
+            emptyNote.className = 'app-detail-note';
+            emptyNote.id = global.uid('app-result-detail-packet-empty-' + String(packet.packet_type || 'packet').replace(/[^A-Za-z0-9_-]/g, '_'));
+            emptyNote.textContent = '该报文本体未携带任何属性（原始报文仅 ' + (packet.raw_packet ? packet.raw_packet.length / 2 : 20) + ' 字节）。';
+            host.appendChild(emptyNote);
+            return;
+          }
+
           var attrWrap = document.createElement('div');
           attrWrap.className = 'app-table-wrap';
+          attrWrap.id = global.uid('app-result-detail-wrap-' + String(packet.packet_type || 'packet').replace(/[^A-Za-z0-9_-]/g, '_'));
           var attrTable = document.createElement('table');
           attrTable.className = 'app-table';
           attrTable.id = global.uid('app-result-detail-packet-' + String(packet.packet_type || 'packet').replace(/[^A-Za-z0-9_-]/g, '_'));
           var thead = document.createElement('thead');
           var headRow = document.createElement('tr');
+          headRow.id = attrTable.id + '-head-row';
           ['Radius模板', 'Name', 'Name_ZH', 'Type', 'Value'].forEach(function (text) {
             var th = document.createElement('th');
+            th.id = global.uid(attrTable.id + '-th-' + text);
             th.textContent = text;
             headRow.appendChild(th);
           });
           thead.appendChild(headRow);
           var tbody = document.createElement('tbody');
-          (packet.attributes || []).forEach(function (attribute) {
+          tbody.id = attrTable.id + '-body';
+          packetAttributes.forEach(function (attribute, rowIndex) {
             var tr = document.createElement('tr');
+            tr.id = attrTable.id + '-row-' + rowIndex;
             [
               attribute.radius_template,
               attribute.name,
               attribute.name_zh,
               attribute.type,
               attribute.value
-            ].forEach(function (value) {
+            ].forEach(function (value, cellIndex) {
               var td = document.createElement('td');
+              td.id = tr.id + '-cell-' + cellIndex;
               td.textContent = value === undefined || value === null ? '' : String(value);
               tr.appendChild(td);
             });
@@ -245,17 +330,23 @@
           var tableEl = document.createElement('table');
           tableEl.className = 'app-table';
           tableEl.id = global.uid('app-result-session-table');
+          wrap.id = tableEl.id + '-wrap';
           var thead = document.createElement('thead');
+          thead.id = tableEl.id + '-head';
           var headRow = document.createElement('tr');
+          headRow.id = tableEl.id + '-head-row';
           ['任务 ID', '开始时间', '结束时间', 'Server', '协议', '并发', '速率', '停止原因'].forEach(function (text) {
             var th = document.createElement('th');
+            th.id = global.uid(tableEl.id + '-th-' + text);
             th.textContent = text;
             headRow.appendChild(th);
           });
           thead.appendChild(headRow);
           var tbody = document.createElement('tbody');
-          rows.forEach(function (row) {
+          tbody.id = tableEl.id + '-body';
+          rows.forEach(function (row, rowIndex) {
             var tr = document.createElement('tr');
+            tr.id = tableEl.id + '-row-' + rowIndex;
             var fullId = String(row.task_id || '');
             var shortId = fullId.length > 10 ? fullId.slice(0, 8) + '...' : fullId;
             [
@@ -269,6 +360,7 @@
               row.stop_reason || '-'
             ].forEach(function (value, idx) {
               var td = document.createElement('td');
+              td.id = tr.id + '-cell-' + idx;
               if (idx === 0) {
                 td.className = 'app-table-cell-mono';
                 td.textContent = value;

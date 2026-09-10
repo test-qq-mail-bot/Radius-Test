@@ -55,7 +55,7 @@
     render: function (container) {
       // ---------- 顶部操作：表单 + 保存 / 导入用户 ----------
       var toolbar = global.RtUI.card('用户操作');
-      toolbar.element.id = global.uid('app-user-toolbar-card');
+      toolbar.identify('app-user-toolbar-card');
       var actions = document.createElement('div');
       actions.className = 'app-form-row';
       actions.id = global.uid('app-user-toolbar-actions');
@@ -165,7 +165,7 @@
 
       // ---------- 用户列表 ----------
       var listCard = global.RtUI.card('用户列表');
-      listCard.element.id = global.uid('app-user-list-card');
+      listCard.identify('app-user-list-card');
       var listHost = document.createElement('div');
       listHost.id = global.uid('app-user-list-host');
       listCard.body.appendChild(listHost);

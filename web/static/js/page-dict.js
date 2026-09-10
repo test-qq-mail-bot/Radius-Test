@@ -14,7 +14,7 @@
     desc: '内置与自定义 Radius 属性模板管理',
     render: function (container) {
       var deriveCard = global.RtUI.card('派生自定义模板');
-      deriveCard.element.id = global.uid('app-dict-derive-card');
+      deriveCard.identify('app-dict-derive-card');
       var form = document.createElement('div');
       form.className = 'app-form';
       form.id = global.uid('app-dict-derive-form');
@@ -102,7 +102,7 @@
       container.appendChild(deriveCard.element);
 
       var uploadCard = global.RtUI.card('上传自定义模板');
-      uploadCard.element.id = global.uid('app-dict-upload-card');
+      uploadCard.identify('app-dict-upload-card');
       var uploadRow = document.createElement('div');
       uploadRow.className = 'app-form-row';
       uploadRow.id = global.uid('app-dict-upload-row');
@@ -119,7 +119,7 @@
       container.appendChild(uploadCard.element);
 
       var listCard = global.RtUI.card('模板列表');
-      listCard.element.id = global.uid('app-dict-list-card');
+      listCard.identify('app-dict-list-card');
       var listHost = document.createElement('div');
       listHost.id = global.uid('app-dict-list-host');
       listCard.body.appendChild(listHost);
@@ -188,7 +188,7 @@
           listHost.innerHTML = '';
           templates.forEach(function (template) {
             var card = global.RtUI.card(template.template);
-            card.element.id = global.uid('app-dict-item-' + template.template);
+            card.identify('app-dict-item-' + template.template);
             var info = document.createElement('div');
             info.className = 'app-detail-list';
             [

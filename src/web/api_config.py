@@ -122,6 +122,13 @@ def _validate(config: dict) -> None:
         raise ConfigError("测试速率不能为负数")
     if int(test.get("max_concurrency") or 0) < 1:
         raise ConfigError("最大并发数至少为 1")
+    if float(test.get("accounting_timeout") or 0) <= 0:
+        raise ConfigError("计费超时必须大于 0")
+    if int(test.get("accounting_retry_count") or 0) < 1:
+        raise ConfigError("计费重试次数至少为 1")
+    trace_limit = config.get("log", {}).get("packet_trace_limit")
+    if trace_limit is not None and int(trace_limit) < 0:
+        raise ConfigError("报文追踪上限不能为负数（0 表示不限）")
     radius = config.get("radius", {})
     if int(radius.get("mschap_peer_challenge_bytes") or 8) not in (8, 16):
         raise ConfigError("MS-CHAP 对端挑战值字节数只能是 8 或 16")

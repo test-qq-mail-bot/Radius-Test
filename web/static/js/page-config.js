@@ -42,7 +42,7 @@
       }
 
       var webCard = global.RtUI.card('Web 服务');
-      webCard.element.id = global.uid('app-config-web-card');
+      webCard.identify('app-config-web-card');
       var webForm = document.createElement('div');
       webForm.className = 'app-form';
       webForm.id = global.uid('app-config-web-form');
@@ -75,7 +75,7 @@
       container.appendChild(webCard.element);
 
       var logCard = global.RtUI.card('日志');
-      logCard.element.id = global.uid('app-config-log-card');
+      logCard.identify('app-config-log-card');
       var logForm = document.createElement('div');
       logForm.className = 'app-form';
       logForm.id = global.uid('app-config-log-form');
@@ -92,12 +92,17 @@
         controls.logLevel.appendChild(option);
       });
       logRow.appendChild(box('日志等级', controls.logLevel, 'DEBUG 时浏览器控制台输出前端 Debug 信息'));
+      controls.traceLimit = textInput('app-config-tracelimit-input', 'number');
+      controls.traceLimit.id = global.uid('app-config-trace-limit');
+      logRow.appendChild(box('报文追踪上限（条/任务）', controls.traceLimit,
+        'DEBUG 时每个测试任务最多打印多少条报文收发记录，0 表示不限', 
+        [{ type: 'integer', min: 0, max: 100000 }]));
       logForm.appendChild(logRow);
       logCard.body.appendChild(logForm);
       container.appendChild(logCard.element);
 
       var testCard = global.RtUI.card('测试参数');
-      testCard.element.id = global.uid('app-config-test-card');
+      testCard.identify('app-config-test-card');
       var testForm = document.createElement('div');
       testForm.className = 'app-form';
       testForm.id = global.uid('app-config-test-form');
@@ -133,11 +138,25 @@
       testRow2.appendChild(box('掉线判定连续失败次数', controls.interimFail,
         '默认 3；判定条件为 60 秒 × 3 次 = 180 秒', [{ type: 'integer', min: 1, max: 10 }]));
       testForm.appendChild(testRow2);
+      var testRow3 = document.createElement('div');
+      testRow3.className = 'app-form-row';
+      testRow3.id = global.uid('app-config-test-row-3');
+      controls.acctTimeout = textInput('app-config-accttimeout-input', 'number');
+      controls.acctTimeout.id = global.uid('app-config-acct-timeout');
+      testRow3.appendChild(box('计费超时（秒）', controls.acctTimeout,
+        '计费报文单独的超时，独立于认证超时；默认 1', 
+        [{ type: 'positiveNumber', min: 0.1, max: 120 }]));
+      controls.acctRetry = textInput('app-config-acctretry-input', 'number');
+      controls.acctRetry.id = global.uid('app-config-acct-retry');
+      testRow3.appendChild(box('计费重试次数', controls.acctRetry,
+        '默认 1；计费不可用时避免长时间挂起',
+        [{ type: 'integer', min: 1, max: 10 }]));
+      testForm.appendChild(testRow3);
       testCard.body.appendChild(testForm);
       container.appendChild(testCard.element);
 
       var storageCard = global.RtUI.card('数据存储');
-      storageCard.element.id = global.uid('app-config-storage-card');
+      storageCard.identify('app-config-storage-card');
       var storageRow = document.createElement('div');
       storageRow.className = 'app-checkbox-row';
       storageRow.id = global.uid('app-config-storage-row');
@@ -159,7 +178,7 @@
       container.appendChild(storageCard.element);
 
       var radiusCard = global.RtUI.card('RADIUS 协议');
-      radiusCard.element.id = global.uid('app-config-radius-card');
+      radiusCard.identify('app-config-radius-card');
       var radiusForm = document.createElement('div');
       radiusForm.className = 'app-form';
       radiusForm.id = global.uid('app-config-radius-form');
@@ -183,7 +202,7 @@
       container.appendChild(radiusCard.element);
 
       var aboutCard = global.RtUI.card('关于');
-      aboutCard.element.id = global.uid('app-config-about-card');
+      aboutCard.identify('app-config-about-card');
       var aboutHost = document.createElement('div');
       aboutHost.id = global.uid('app-config-about-host');
       aboutCard.body.appendChild(aboutHost);
@@ -226,12 +245,17 @@
             port: controls.port.value ? parseInt(controls.port.value, 10) : null,
             https: controls.https.checked
           },
-          log: { level: controls.logLevel.value },
+          log: {
+            level: controls.logLevel.value,
+            packet_trace_limit: parseInt(controls.traceLimit.value, 10) || 0
+          },
           test: {
             rate: parseFloat(controls.rate.value) || 10,
             max_concurrency: parseInt(controls.concurrency.value, 10) || 10000,
             timeout: parseFloat(controls.timeout.value) || 5,
             retry_count: parseInt(controls.retry.value, 10) || 3,
+            accounting_timeout: parseFloat(controls.acctTimeout.value) || 1,
+            accounting_retry_count: parseInt(controls.acctRetry.value, 10) || 1,
             interim_interval: parseInt(controls.interim.value, 10) || 0,
             interim_max_fail: parseInt(controls.interimFail.value, 10) || 3
           },
@@ -306,10 +330,15 @@
           controls.port.value = web.port ? String(web.port) : '';
           controls.https.checked = !!web.https;
           controls.logLevel.value = log.level || 'INFO';
+          var traceLimit = (log.packet_trace_limit === 0 || log.packet_trace_limit)
+            ? log.packet_trace_limit : 200;
+          controls.traceLimit.value = String(traceLimit);
           controls.rate.value = String(test.rate || 10);
           controls.concurrency.value = String(test.max_concurrency || 10000);
           controls.timeout.value = String(test.timeout || 5);
           controls.retry.value = String(test.retry_count || 3);
+          controls.acctTimeout.value = String(test.accounting_timeout || 1);
+          controls.acctRetry.value = String(test.accounting_retry_count || 1);
           controls.interim.value = String(test.interim_interval || 0);
           controls.interimFail.value = String(test.interim_max_fail || 3);
           controls.savePackets.checked = !!storage.save_packets;

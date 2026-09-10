@@ -26,6 +26,7 @@ from ..database import dao
 from ..logging import logger
 from ..performance.limiter import RateLimiter
 from ..performance.pool import ConcurrencyController
+from ..radius import trace
 from ..radius.client import RadiusClient
 from . import state as state_mod
 from . import task as task_mod
@@ -123,6 +124,8 @@ class TestSession:
         self.started_at = time.time()
         self._heartbeat_ok = time.monotonic()
         self._stop_event.clear()
+        # 报文收发明细限流：DEBUG 级压测时避免日志风暴
+        trace.set_limit(int(self.options.get("packet_trace_limit") or 0))
         dao.save_session({
             "task_id": self.task_id,
             "start_time": time_util.format_log_time(),
@@ -216,6 +219,9 @@ class TestSession:
         enable_accounting = bool(self.options.get("enable_accounting", True))
         online_criteria = str(self.options.get("online_criteria") or "accounting")
         peer_challenge_bytes = int(self.options.get("peer_challenge_bytes") or 8)
+        acct_timeout = float(self.options.get("accounting_timeout") or 0.0)
+        acct_retry = int(self.options.get("accounting_retry_count") or 0)
+        acct_ma = bool(self.options.get("accounting_message_authenticator"))
         index = 0
         push_deadline = time.monotonic()
         try:
@@ -252,7 +258,7 @@ class TestSession:
                 user_task = asyncio.create_task(
                     self._execute(server, username, password, save_packets,
                                   enable_accounting, peer_challenge_bytes,
-                                  online_criteria)
+                                  online_criteria, acct_timeout, acct_retry, acct_ma)
                 )
                 self._tasks.append(user_task)
                 self._pending[username] = self._pending.get(username, 0) + 1
@@ -276,7 +282,10 @@ class TestSession:
     async def _execute(self, server: dict, username: str, password: str,
                        save_packets: bool, enable_accounting: bool,
                        peer_challenge_bytes: int,
-                       online_criteria: str = "accounting"):
+                       online_criteria: str = "accounting",
+                       accounting_timeout: float = 0.0,
+                       accounting_retry_count: int = 0,
+                       accounting_message_authenticator: bool = False):
         """
         执行单个用户任务，释放并发额度。
 
@@ -288,6 +297,8 @@ class TestSession:
                 self._client, server, username, password, self.protocol,
                 self.task_id, save_packets, self._online,
                 enable_accounting, peer_challenge_bytes, online_criteria,
+                accounting_timeout, accounting_retry_count,
+                accounting_message_authenticator,
             )
         except asyncio.CancelledError:
             raise
@@ -370,6 +381,8 @@ class TestSession:
             "timeout": self.timeout_count,
             "reason": state_mod.stop_reason_text(self.stop_reason) or "自然结束",
         })
+        # 报文追踪被限流时输出汇总，避免 DEBUG 压测丢失可观测性
+        trace.flush_summary("testing", "测试任务收尾")
         await self._push()
 
     async def _push(self) -> None:

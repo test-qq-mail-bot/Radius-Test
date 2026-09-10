@@ -3,12 +3,19 @@
 RADIUS 认证器与加密模块。
 
 职责：
-    1. 生成 Request Authenticator（16 字节随机数）；
-    2. 校验 Response Authenticator；
-    3. User-Password 加密（RFC 2865 5.2）；
-    4. Message-Authenticator 计算与校验（RFC 2869 5.14）。
+    1. 生成 Request Authenticator（16 字节随机数，仅用于 Access-* 报文）；
+    2. 计算 Accounting-Request 的 Request Authenticator（RFC 2866 3）；
+    3. 校验 Response Authenticator；
+    4. User-Password 加密（RFC 2865 5.2）；
+    5. Message-Authenticator 计算与校验（RFC 2869 5.14）。
 
 说明：
+    Access-Request 的 Request Authenticator 是随机数（RFC 2865 3）；
+    Accounting-Request 的 Request Authenticator 必须是 MD5 摘要（RFC 2866 3）：
+        MD5(Code + Identifier + Length + 16 个零字节 + 属性 + 共享密钥)
+    两者不可混用：Accounting-Request 用随机数时，服务器无法校验，
+    依据 RFC 2866 4.1「收不下就不回」，会静默丢弃且不返回任何响应。
+
     Response Authenticator = MD5(Code + ID + Length + RequestAuth + Attributes + Secret)
 """
 
@@ -25,8 +32,40 @@ PASSWORD_BLOCK_SIZE = 16
 
 
 def new_request_authenticator() -> bytes:
-    """生成 16 字节随机 Request Authenticator。"""
+    """生成 16 字节随机 Request Authenticator（仅用于 Access-* 报文）。"""
     return os.urandom(AUTHENTICATOR_LENGTH)
+
+
+def compute_accounting_request_authenticator(
+    code: int,
+    identifier: int,
+    length: int,
+    attributes: bytes,
+    secret: bytes,
+) -> bytes:
+    """
+    计算 Accounting-Request 的 Request Authenticator（RFC 2866 3）。
+
+    算法：
+        MD5(Code + Identifier + Length + 16 个零字节 + 属性 + 共享密钥)
+
+    参数：
+        code: 报文类型（Accounting-Request = 4）
+        identifier: 报文标识（1 字节）
+        length: 报文总长度（含头部）
+        attributes: 属性区字节串；若含 Message-Authenticator，该属性值须为 16 字节零
+        secret: 共享密钥
+
+    返回：
+        16 字节摘要，写入报文 Authenticator 字段。
+    """
+    md5 = hashlib.md5()
+    md5.update(bytes([code, identifier]))
+    md5.update(int(length).to_bytes(2, "big"))
+    md5.update(bytes(AUTHENTICATOR_LENGTH))
+    md5.update(attributes)
+    md5.update(secret)
+    return md5.digest()
 
 
 def compute_response_authenticator(
