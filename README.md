@@ -2,7 +2,7 @@
 
 RADIUS 认证、在线会话及性能测试工具。
 
-- **当前版本**：见 `src/version.py` 的 `SOFTWARE_VERSION`（当前 `20260907-V3`），版本号统一在此处维护，前后端共用。
+- **当前版本**：见 `src/version.py`：`SOFTWARE_VERSION`（后端，当前 `20260909-V3`）、`FRONTEND_VERSION`（前端，当前 `20260909-V4`），版本号统一在此处维护。
 - **定位**：面向网络/安全工程师，对 RADIUS 服务器进行单用户认证验证、批量在线会话压测与报文级调试。
 
 ---
@@ -122,7 +122,7 @@ python build.py
 - **变动日期**：本次修改的日期（YYYYMMDD）。
 - **V序号**：当天第几次变动（V1、V2…）。
 - 每次功能或修复都升版本号，便于用户确认运行的是哪个版本。
-- 修改位置唯一：`src/version.py`（`SOFTWARE_VERSION` 与 `FRONTEND_VERSION` 保持一致）。
+- 修改位置唯一：`src/version.py`。`SOFTWARE_VERSION`（后端）与 `FRONTEND_VERSION`（前端）分别维护，仅当对应层发生变动时才升该层版本号（如仅前端改动只升 `FRONTEND_VERSION`）。
 
 ---
 

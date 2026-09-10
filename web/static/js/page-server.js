@@ -79,6 +79,10 @@
     return data;
   }
 
+  // 密钥掩码哨兵值：由 /api/servers 的 secret_mask 下发，缺省 8 个星号。
+  // 表单回填与提交统一使用该值，真实密钥不出现在页面上。
+  var secretMask = '********';
+
   function safeId(s) {
     return String(s == null ? '' : s).replace(/[^A-Za-z0-9_-]/g, '_') || 'x';
   }
@@ -106,28 +110,28 @@
       row1.id = uid('app-server-row-1');
       row1.appendChild(field('名称', input('name', '', 'text', 'off', 'app-server-name'), null, [{ type: 'required' }]));
       row1.appendChild(field('服务器地址', input('server_address', '', 'text', 'off', 'app-server-address'), null, [{ type: 'host' }]));
-      row1.appendChild(field('共享密钥', input('shared_secret', '', 'text', 'new-password', 'app-server-secret'), null, [{ type: 'required' }]));
+      row1.appendChild(field('共享密钥', global.RtUI.secretInput('shared_secret', '', 'app-server-secret'), null, [{ type: 'required' }]));
       form.appendChild(row1);
 
       var row2 = document.createElement('div');
       row2.className = 'app-form-row';
       row2.id = uid('app-server-row-2');
-      row2.appendChild(field('认证端口', input('authentication_port', 1812, 'number', null, 'app-server-auth-port'),
-        '默认 1812', [{ type: 'port' }]));
       row2.appendChild(field('RADIUS 认证服务器', input('authentication_server_address', '', 'text', 'off', 'app-server-auth-server'),
         '必填；认证报文发往的服务器地址', [{ type: 'host' }]));
-      row2.appendChild(field('认证密钥', input('authentication_secret', '', 'text', 'new-password', 'app-server-auth-secret'),
+      row2.appendChild(field('认证端口', input('authentication_port', 1812, 'number', null, 'app-server-auth-port'),
+        '默认 1812', [{ type: 'port' }]));
+      row2.appendChild(field('认证密钥', global.RtUI.secretInput('authentication_secret', '', 'app-server-auth-secret'),
         '必填；与认证服务器约定', [{ type: 'required' }]));
       form.appendChild(row2);
 
       var row3 = document.createElement('div');
       row3.className = 'app-form-row';
       row3.id = uid('app-server-row-3');
-      row3.appendChild(field('计费端口', input('accounting_port', 1813, 'number', null, 'app-server-acct-port'),
-        '默认 1813', [{ type: 'port' }]));
       row3.appendChild(field('RADIUS 计费服务器', input('accounting_server_address', '', 'text', 'off', 'app-server-acct-server'),
         '必填；计费报文发往的服务器地址', [{ type: 'host' }]));
-      row3.appendChild(field('计费密钥', input('accounting_secret', '', 'text', 'new-password', 'app-server-acct-secret'),
+      row3.appendChild(field('计费端口', input('accounting_port', 1813, 'number', null, 'app-server-acct-port'),
+        '默认 1813', [{ type: 'port' }]));
+      row3.appendChild(field('计费密钥', global.RtUI.secretInput('accounting_secret', '', 'app-server-acct-secret'),
         '必填；与计费服务器约定', [{ type: 'required' }]));
       row3.appendChild(field('计费间隔（秒）', input('accounting_interval', 0, 'number', null, 'app-server-acct-interval'),
         '0 = 不发送 Interim-Update；>0 按间隔发送', [{ type: 'integer', min: 0 }]));
@@ -221,32 +225,29 @@
           return;
         }
         var payload = readForm(form);
-        // 是否需要在按钮 loading 结束后退出编辑态。
-        // 注意：withLoading 执行期间按钮内部只有 spinner，此时重置按钮文字会取不到 .app-button-text，
-        // 因此退出编辑态必须延后到 withLoading 完成、按钮内容恢复后再执行。
+        // 名称是唯一键：保存统一走 createServer，由后端按名称 upsert
+        // （同名覆盖、异名新增），不再区分新增/修改两条分支。
+        // 退出编辑态必须延后到 withLoading 完成、按钮文字恢复后再执行。
         var pendingExitEdit = false;
         global.RtUI.withLoading(submit, function () {
-          if (editingName) {
-            return global.RtApi.updateServer(editingName, payload).then(function () {
-              global.RtUI.toast('Server 已保存', 'success');
-              pendingExitEdit = true;
-              return load();
-            });
-          }
           return global.RtApi.createServer(payload).then(function (data) {
-            // 名称是唯一键：同名提交由后端覆盖更新，前端按结果区分提示
+            // 后端按名称 upsert：同名返回 updated=true（覆盖），异名返回 false（新增）
             if (data && data.updated) {
               global.RtUI.toast('同名 Server 已存在，已覆盖更新：' + payload.name, 'success');
             } else {
               global.RtUI.toast('Server 已新增：' + payload.name, 'success');
             }
-            form.reset();
-            // 清掉残留错误样式
-            validateBoxes.forEach(function (box) { global.RtUI.validate.clearError(box); });
+            if (editingName) {
+              // 编辑态：延后由下方退出编辑态统一重置表单
+              pendingExitEdit = true;
+            } else {
+              form.reset();
+              // 清掉残留错误样式
+              validateBoxes.forEach(function (box) { global.RtUI.validate.clearError(box); });
+            }
             return load();
           });
         }, event).then(function () {
-          // 按钮已恢复，此时退出编辑态不会再被 innerHTML 还原覆盖
           if (pendingExitEdit) {
             pendingExitEdit = false;
             exitEditMode();
@@ -275,12 +276,13 @@
         }
         findField('name').value = server.name;
         findField('server_address').value = server.server_address;
-        findField('shared_secret').value = server.shared_secret || '';
+        // 密钥一律回填掩码：真实密钥不下发到页面，保持掩码即代表“密钥不变”
+        findField('shared_secret').value = server.shared_secret ? secretMask : '';
         findField('authentication_server_address').value = server.authentication_server_address || '';
-        findField('authentication_secret').value = server.authentication_secret || '';
+        findField('authentication_secret').value = server.authentication_secret ? secretMask : '';
         findField('authentication_port').value = server.authentication_port;
         findField('accounting_server_address').value = server.accounting_server_address || '';
-        findField('accounting_secret').value = server.accounting_secret || '';
+        findField('accounting_secret').value = server.accounting_secret ? secretMask : '';
         findField('accounting_port').value = server.accounting_port;
         findField('accounting_interval').value = server.accounting_interval;
         findField('nas_ip_address').value = server.nas_ip_address || '';
@@ -333,7 +335,7 @@
         body.id = uid('app-usertest-body');
 
         var username = input('auth-username', '', 'text', 'off', uid('app-usertest-username'));
-        var password = input('auth-password', '', 'text', 'new-password', uid('app-usertest-password'));
+        var password = global.RtUI.secretInput('auth-password', '', uid('app-usertest-password'));
 
         var protoField = document.createElement('div');
         protoField.className = 'app-field';
@@ -365,7 +367,7 @@
         testBtn.addEventListener('click', function (event) {
           var protocol = protoSelect.value;
           var user = username.value.trim();
-          var pass = password.value;
+          var pass = password.querySelector('.app-secret-input-field').value;
           if (!user) {
             global.RtUI.toast('请输入用户名', 'warning');
             return;
@@ -421,6 +423,10 @@
 
       function load() {
         return global.RtApi.listServers().then(function (data) {
+          // 密钥掩码由后端下发，前端不接触真实密钥
+          if (data.secret_mask) {
+            secretMask = data.secret_mask;
+          }
           listHost.innerHTML = '';
           var servers = data.servers || [];
           if (servers.length === 0) {
@@ -466,23 +472,6 @@
 
             var actions = document.createElement('div');
             actions.className = 'app-form-row';
-            var testButton = actionButton('测试服务器', '',
-              function (event) {
-                global.RtUI.withLoading(testButton, function () {
-                  return global.RtApi.testServer(server.name).then(function (result) {
-                    global.RtUI.modal('测试结果 - ' + server.name, [
-                      ['服务器地址', result.server],
-                      ['认证端口', result.authentication_port],
-                      ['计费端口', result.accounting_port],
-                      ['连接结果', result.connect_result],
-                      ['RADIUS 响应结果', result.radius_result],
-                      ['响应时间', result.response_time_ms + ' ms'],
-                      ['错误原因', result.error || '无']
-                    ]);
-                  });
-                }, event);
-              });
-            testButton.id = uid('app-server-test-' + safeId(server.name));
             var userTestButton = actionButton('Radius 用户测试', '',
               function (event) {
                 openUserTestModal(server, event);
@@ -508,7 +497,6 @@
               });
             deleteButton.id = uid('app-server-delete-' + safeId(server.name));
             actions.appendChild(editButton);
-            actions.appendChild(testButton);
             actions.appendChild(userTestButton);
             actions.appendChild(deleteButton);
             card.body.appendChild(actions);

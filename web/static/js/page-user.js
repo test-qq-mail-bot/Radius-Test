@@ -75,14 +75,18 @@
       }
 
       var nameInput = makeInput('username', '用户名', 'text', 'off');
-      var passInput = makeInput('password', '密码', 'text', 'new-password');
+      /* 密码框使用密文组件（password + 眼睛切换）；passInput 仍指向内部 input，
+         保持取值、校验与聚焦逻辑不变。 */
+      var passWrap = global.RtUI.secretInput('password', '', null);
+      var passInput = passWrap.querySelector('.app-secret-input-field');
+      passInput.placeholder = '密码';
       var remarkInput = makeInput('remark', '备注', 'text', 'off');
       global.RtUI.validate.bindInput(nameInput, {
         rules: [{ type: 'required' }], label: '用户名'
       });
       // 密码不再强制必填：留空代表「不修改密码」，仅新用户要求必填（见保存逻辑）
       addForm.appendChild(nameInput);
-      addForm.appendChild(passInput);
+      addForm.appendChild(passWrap);
       addForm.appendChild(remarkInput);
 
       var allUsers = [];

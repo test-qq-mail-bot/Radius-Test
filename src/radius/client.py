@@ -142,20 +142,29 @@ class RadiusClient:
     def _build_packet(self, code: int, request_authenticator: bytes,
                       attributes: list, secret: bytes) -> bytes:
         """
-        构造带 Message-Authenticator 的完整报文。
+        构造完整报文。
 
-        流程：
+        Message-Authenticator（属性 80）仅在报文包含 EAP-Message（属性 79）
+        时追加，符合 RFC 2869 5.14「仅当使用 EAP 时必须携带」的要求。
+        PAP / CHAP / MS-CHAP / Accounting 等非 EAP 报文不携带该属性，
+        避免部分服务端（如华为 AgileController）对无法校验的
+        Message-Authenticator 静默丢弃导致超时。
+
+        流程（仅 EAP 报文）：
             1. 追加 Message-Authenticator 占位属性（值为 16 字节零）；
             2. 计算报文长度并计算 HMAC-MD5；
             3. 回填真实值。
         """
         attribute_bytes = attr_mod.encode_attributes(attributes)
-        attribute_bytes += auth_mod.build_message_authenticator_placeholder()
-        length = 20 + len(attribute_bytes)
-        mac = auth_mod.compute_message_authenticator(
-            code, 0, length, request_authenticator, attribute_bytes, secret
-        )
-        attribute_bytes = auth_mod.replace_message_authenticator(attribute_bytes, mac)
+        has_eap = any(attr_id == codes.ATTR_EAP_MESSAGE
+                      for attr_id, _ in attributes)
+        if has_eap:
+            attribute_bytes += auth_mod.build_message_authenticator_placeholder()
+            length = 20 + len(attribute_bytes)
+            mac = auth_mod.compute_message_authenticator(
+                code, 0, length, request_authenticator, attribute_bytes, secret
+            )
+            attribute_bytes = auth_mod.replace_message_authenticator(attribute_bytes, mac)
         return encode_packet(code, 0, request_authenticator, attribute_bytes)
 
     async def _send(self, server: dict, packet: bytes, port: int) -> bytes:

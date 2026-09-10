@@ -54,6 +54,43 @@
       return button;
     },
 
+    /* 密钥/密码输入框：默认密文，点击眼睛按钮可暂时查看已输入内容。
+       返回容器 div（内含 input 与切换按钮），input 仍带 app-field-input 类，
+       以兼容表单读取与校验逻辑。 */
+    secretInput: function (name, value, id) {
+      var wrap = document.createElement('div');
+      wrap.className = 'app-secret-input';
+      var element = document.createElement('input');
+      element.className = 'app-field-input app-secret-input-field';
+      element.name = name;
+      element.type = 'password';
+      element.value = value === undefined || value === null ? '' : String(value);
+      element.setAttribute('autocomplete', 'new-password');
+      if (id) {
+        element.id = id;
+      }
+      var toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'app-secret-toggle';
+      toggle.title = '显示 / 隐藏';
+      toggle.setAttribute('aria-label', '显示或隐藏内容');
+      toggle.setAttribute('aria-pressed', 'false');
+      var icon = document.createElement('img');
+      icon.className = 'app-secret-toggle-icon';
+      icon.src = '/static/svg/action-eye.svg';
+      icon.alt = '';
+      toggle.appendChild(icon);
+      toggle.addEventListener('click', function () {
+        var show = element.type === 'password';
+        element.type = show ? 'text' : 'password';
+        icon.src = show ? '/static/svg/action-eye-off.svg' : '/static/svg/action-eye.svg';
+        toggle.setAttribute('aria-pressed', show ? 'true' : 'false');
+      });
+      wrap.appendChild(element);
+      wrap.appendChild(toggle);
+      return wrap;
+    },
+
     toast: function (message, kind) {
       var host = document.getElementById('toast-host');
       if (!host) {

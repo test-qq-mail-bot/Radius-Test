@@ -523,6 +523,35 @@ def get_packet_detail(packet_id: int) -> Optional[Dict[str, Any]]:
     return detail
 
 
+def delete_single_test(username: str) -> None:
+    """
+    清理某个用户上一次的单次测试记录。
+
+    说明：
+        单次测试的任务 ID 以 UT- 开头（见 testing.single.SINGLE_TASK_PREFIX），
+        据此与批量/性能测试任务区分，避免误删任务报文。
+        删除与后续写入统一走异步写队列，保证「先清旧、再写新」的顺序。
+
+    参数：
+        username: 用户名
+    """
+    writer = _get_writer()
+    writer.submit(
+        "DELETE FROM radius_attributes WHERE packet_id IN "
+        "(SELECT id FROM radius_packets WHERE task_id LIKE 'UT-%' AND username = ?)",
+        (username,),
+    )
+    writer.submit(
+        "DELETE FROM radius_packets WHERE task_id LIKE 'UT-%' AND username = ?",
+        (username,),
+    )
+    writer.submit(
+        "DELETE FROM test_results WHERE task_id LIKE 'UT-%' AND username = ?",
+        (username,),
+    )
+    logger.debug("database", "已清理用户上一次单次测试记录", {"username": username})
+
+
 def clear_results() -> None:
     """清空测试结果数据（保留表结构）。"""
     connection = _get_read_connection()

@@ -78,6 +78,29 @@ SERVER_FIELDS = {
 # 支持的认证协议
 SUPPORTED_PROTOCOLS = ("pap", "chap", "mschap", "mschapv2", "eap-md5")
 
+# 密钥掩码哨兵值。
+# 用途：Server 密钥属敏感信息，不允许以明文形式发送到 Web 页面。
+# 接口返回与表单回填统一使用该掩码；提交时若密钥字段仍等于该值，
+# 代表“密钥不变”，由后端沿用已保存的原密钥。
+SECRET_MASK = "*" * 8
+
+# 需要脱敏的 Server 密钥字段
+SECRET_FIELDS = ("shared_secret", "authentication_secret", "accounting_secret")
+
+
+def mask_secrets(server: dict) -> dict:
+    """
+    返回 Server 配置的脱敏副本，密钥字段替换为掩码。
+
+    说明：
+        返回新字典，不修改入参；原密钥不会随接口响应输出到 Web 页面。
+    """
+    masked = dict(server or {})
+    for field in SECRET_FIELDS:
+        if str(masked.get(field) or ""):
+            masked[field] = SECRET_MASK
+    return masked
+
 # config.yaml 初始模板
 CONFIG_YAML_TEMPLATE = """# Radius-Test 配置文件
 #

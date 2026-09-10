@@ -22,6 +22,7 @@ from ..common import uuid_util
 from ..database import dao
 from ..logging import logger
 from ..parser import packet_parser
+from . import packets as packets_mod
 from . import state as state_mod
 
 
@@ -42,74 +43,7 @@ class TaskOutcome:
         self.session_id = ""
 
 
-def _save_packets(task_id: str, username: str, server_name: str,
-                  request_packet, response_packet) -> None:
-    """
-    保存请求与响应报文及其属性。
-
-    流程：
-        1. 预分配报文 ID，避免与异步批量写入产生竞态；
-        2. 用预分配的 ID 写入报文；
-        3. 用同一批 ID 写入属性，建立关联关系。
-    """
-    pairs = [("request", request_packet), ("response", response_packet)]
-    pairs = [(label, packet) for label, packet in pairs if packet is not None]
-    if not pairs:
-        return
-    now = time_util.format_log_time()
-    packet_ids = dao.allocate_packet_ids(len(pairs))
-    for (label, packet), packet_id in zip(pairs, packet_ids):
-        dao.save_packet({
-            "task_id": task_id,
-            "username": username,
-            "server": server_name,
-            "packet_type": "%s-%s" % (label, packet.code_name),
-            "packet_time": now,
-            "raw_packet": packet.raw.hex(),
-            "parse_status": packet.parse_status,
-            "parse_error": packet.parse_error,
-        }, packet_id=packet_id)
-        _save_attributes(packet, packet_id)
-
-
-def _save_attributes(packet, packet_id: int) -> None:
-    """保存单条报文的属性解析结果。"""
-    if packet is None:
-        return
-    rows = []
-    for attribute in packet.attributes:
-        if attribute.matches:
-            for match in attribute.matches:
-                rows.append({
-                    "packet_id": packet_id,
-                    "attribute_id": attribute.attr_id,
-                    "radius_template": match["template"],
-                    "name": match["name"],
-                    "name_zh": match["name_zh"],
-                    "type": match["type"],
-                    "value": _stringify(match.get("type"), attribute.raw),
-                    "vendor_id": attribute.vendor_id,
-                })
-        else:
-            rows.append({
-                "packet_id": packet_id,
-                "attribute_id": attribute.attr_id,
-                "radius_template": "Unknown",
-                "name": "Unknown",
-                "name_zh": "未知属性",
-                "type": "unknown",
-                "value": attribute.raw.hex(),
-                "vendor_id": attribute.vendor_id,
-            })
-    dao.save_attributes(rows)
-
-
-def _stringify(type_name: str, raw: bytes) -> str:
-    """按类型把属性原始值转换为存储文本。"""
-    from ..radius.codes import decode_value
-
-    value = decode_value(type_name, raw)
-    return value if isinstance(value, str) else str(value)
+# 报文与属性落库由 packets 模块统一提供（与单次测试链路复用）
 
 
 async def run_user_task(client, server: dict, username: str, password: str,
@@ -161,7 +95,8 @@ async def run_user_task(client, server: dict, username: str, password: str,
         packet_parser.enrich(response_packet)
 
     if save_packets:
-        _save_packets(task_id, username, server_name, request_packet, response_packet)
+        packets_mod.save_packets(task_id, username, server_name,
+                                 request_packet, response_packet)
 
     if not result.success:
         outcome.status = state_mod.TIMEOUT if "超时" in (result.error or "") else state_mod.FAILED

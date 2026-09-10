@@ -30,6 +30,7 @@ from ..common.validator import (
 from ..config import defaults, loader
 from ..logging import logger
 from ..radius.client import RadiusClient
+from ..testing import single as single_mod
 from . import runtime
 
 router = APIRouter(prefix="/api/servers", tags=["servers"])
@@ -83,13 +84,45 @@ def _validate_server(server: dict) -> None:
         raise ValidationError("重试次数非法", "值=%s" % server.get("retry_count"))
 
 
+# 掩码哨兵对应字段的中文名，用于校验提示
+SECRET_LABELS = {
+    "shared_secret": "共享密钥",
+    "authentication_secret": "认证密钥",
+    "accounting_secret": "计费密钥",
+}
+
+
+def _apply_secret_sentinel(server: dict, existing: dict) -> None:
+    """
+    处理密钥掩码哨兵。
+
+    规则：
+        提交值等于掩码时代表“密钥不变”；存在同名旧配置则沿用原密钥，
+        不存在（新建）时掩码属于无效输入，直接报错。
+
+    参数：
+        server: 本次提交的 Server 配置（原地修改）
+        existing: 同名旧配置，None 表示新建
+    """
+    for field in defaults.SECRET_FIELDS:
+        if str(server.get(field) or "") != defaults.SECRET_MASK:
+            continue
+        if existing is None:
+            raise ValidationError(
+                "%s不能为掩码值，请填写真实密钥" % SECRET_LABELS.get(field, field),
+                "值=%s" % defaults.SECRET_MASK,
+            )
+        server[field] = str(existing.get(field) or "")
+
+
 @router.get("")
 async def list_servers():
-    """返回全部 RADIUS Server。"""
+    """返回全部 RADIUS Server（密钥字段脱敏，明文不下发到页面）。"""
     return {
-        "servers": loader.get_servers(),
+        "servers": [defaults.mask_secrets(item) for item in loader.get_servers()],
         "fields": defaults.default_server(),
         "protocols": list(defaults.SUPPORTED_PROTOCOLS),
+        "secret_mask": defaults.SECRET_MASK,
     }
 
 
@@ -98,14 +131,20 @@ async def create_server(payload: Dict[str, Any]):
     """新增 RADIUS Server（名称为唯一键，同名时覆盖更新）。"""
     server = defaults.default_server()
     server.update({k: v for k, v in (payload or {}).items() if k in server})
+    servers = loader.get_servers()
+    existing = None
+    for item in servers:
+        if item.get("name") == server["name"]:
+            existing = item
+            break
     try:
+        _apply_secret_sentinel(server, existing)
         _validate_server(server)
     except ValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    servers = loader.get_servers()
     updated = False
-    for index, existing in enumerate(servers):
-        if existing.get("name") == server["name"]:
+    for index, item in enumerate(servers):
+        if item.get("name") == server["name"]:
             # 名称作为唯一键：同名时用本次提交的字段覆盖更新
             servers[index] = server
             updated = True
@@ -117,7 +156,7 @@ async def create_server(payload: Dict[str, Any]):
         logger.info("api", "Server 名称已存在，覆盖更新", {"name": server["name"]})
     else:
         logger.info("api", "已新增 RADIUS Server", {"name": server["name"]})
-    return {"success": True, "updated": updated, "server": server}
+    return {"success": True, "updated": updated, "server": defaults.mask_secrets(server)}
 
 
 @router.put("/{name}")
@@ -129,13 +168,14 @@ async def update_server(name: str, payload: Dict[str, Any]):
             updated = dict(server)
             updated.update({k: v for k, v in (payload or {}).items() if k in updated})
             try:
+                _apply_secret_sentinel(updated, server)
                 _validate_server(updated)
             except ValidationError as exc:
                 raise HTTPException(status_code=400, detail=str(exc))
             servers[index] = updated
             loader.save_servers(servers)
             logger.info("api", "已修改 RADIUS Server", {"name": name})
-            return {"success": True, "server": updated}
+            return {"success": True, "server": defaults.mask_secrets(updated)}
     raise HTTPException(status_code=404, detail="Server 不存在")
 
 
@@ -157,6 +197,14 @@ def _find_server(name: str):
         if server.get("name") == name:
             return server
     return None
+
+
+def _save_packets_enabled() -> bool:
+    """读取系统配置：是否保存 RADIUS 报文。"""
+    try:
+        return bool(loader.load_config()["storage"]["save_packets"])
+    except Exception:
+        return False
 
 
 async def _probe(target: dict, username: str, password: str, protocol: str) -> dict:
@@ -188,6 +236,16 @@ async def _probe(target: dict, username: str, password: str, protocol: str) -> d
             result["connect_result"] = "无响应"
             result["radius_result"] = "无响应"
             result["error"] = auth_result.error or "未收到服务器响应"
+        # 系统配置「保存 RADIUS 报文」开启时，把本次结果/报文落库（每用户仅保留最新一份）
+        if _save_packets_enabled():
+            try:
+                result["task_id"] = single_mod.persist_single_test(
+                    target, username, protocol, auth_result)
+            except Exception as exc:
+                logger.warning("api", "单次测试报文保存失败", {
+                    "username": username,
+                    "error": str(exc),
+                }, exc_info=True)
     except RadiusError as exc:
         result["connect_result"] = "失败"
         result["radius_result"] = "失败"

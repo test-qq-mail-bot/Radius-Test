@@ -151,9 +151,11 @@ def compute_message_authenticator(
     """
     计算 Message-Authenticator（RFC 2869 5.14）。
 
-    算法：
+    算法（RFC 2869 5.14）：
         把 Message-Authenticator 属性值置为 16 字节零，
-        对 (Code + ID + Length + RequestAuthenticator + Attributes) 做 HMAC-MD5。
+        以共享密钥为密钥，对完整报文
+        (Code + ID + Length + RequestAuthenticator + Attributes)
+        做 HMAC-MD5。
 
     参数：
         attributes: 属性区字节串，其中的 Message-Authenticator 必须为 16 字节零
@@ -161,12 +163,11 @@ def compute_message_authenticator(
     返回：
         16 字节 HMAC 值。
     """
-    md5 = hashlib.md5()
-    md5.update(bytes([code, identifier]))
-    md5.update(length.to_bytes(2, "big"))
-    md5.update(request_authenticator)
-    md5.update(attributes)
-    return bytes(bytearray(hmac.new(secret, md5.digest(), hashlib.md5).digest()))
+    message = bytes([code, identifier])
+    message += length.to_bytes(2, "big")
+    message += request_authenticator
+    message += attributes
+    return hmac.new(secret, message, hashlib.md5).digest()
 
 
 def build_message_authenticator_placeholder(attr_id: int = codes.ATTR_MESSAGE_AUTHENTICATOR) -> bytes:
