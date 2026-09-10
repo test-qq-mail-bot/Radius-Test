@@ -579,8 +579,8 @@
       }
       if (global.RtDebug) {
         global.RtDebug.setSoftwareVersion(info.software_version);
-        if (info.frontend_version) {
-          global.RtDebug.setJsVersion(info.frontend_version);
+        if (info.software_version) {
+          global.RtDebug.setJsVersion(info.software_version);
         }
       }
       var headerStatus = document.getElementById('header-status');

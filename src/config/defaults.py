@@ -41,6 +41,10 @@ DEFAULT_CONFIG = {
         "interim_interval": 60,
         # 连续多少次 Interim-Update 失败判定为掉线
         "interim_max_fail": 3,
+        # 在线判定依据：
+        #   accounting = Access-Accept 且 Accounting-Start 成功才算在线（默认，反映服务端真实状态）
+        #   auth       = Access-Accept 即算在线（服务端不支撑计费时也能测在线与并发能力）
+        "online_criteria": "accounting",
     },
     "storage": {
         # 是否保存 RADIUS 原始报文，关闭时只保存认证状态
@@ -125,6 +129,8 @@ test:
   retry_count: 3
   interim_interval: 60
   interim_max_fail: 3
+  # 在线判定依据：accounting=计费上线成功才算在线（默认）；auth=认证成功即在线
+  online_criteria: accounting
 
 storage:
   save_packets: false

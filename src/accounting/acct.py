@@ -40,15 +40,19 @@ class OnlineSession:
 
     __slots__ = ("username", "server_name", "session_id", "start_time",
                  "interim_fail_count", "last_interim_time", "offline",
-                 "protocol", "task_id")
+                 "protocol", "task_id", "interim_disabled")
 
     def __init__(self, username: str, server_name: str, session_id: str,
-                 protocol: str = "", task_id: str = ""):
+                 protocol: str = "", task_id: str = "",
+                 interim_disabled: bool = False):
         self.username = username
         self.server_name = server_name
         self.session_id = session_id
         self.protocol = protocol
         self.task_id = task_id
+        # True 表示该会话不参与 Interim-Update 掉线判定
+        # （用于「认证成功即在线」口径下计费未上线的会话）
+        self.interim_disabled = interim_disabled
         self.start_time = time.time()
         self.interim_fail_count = 0
         self.last_interim_time = self.start_time
@@ -85,6 +89,10 @@ class OnlineSessionManager:
     def tracked_count(self) -> int:
         """被跟踪的会话总数（含已掉线但尚未清理的）。"""
         return len(self._sessions)
+
+    def online_usernames(self) -> set:
+        """返回当前在线（未掉线）的用户名集合，供派发时避免重复登录。"""
+        return {s.username for s in self._sessions.values() if not s.offline}
 
     def configure(self, interim_interval: int, interim_max_fail: int) -> None:
         """更新 Interim-Update 参数。"""
@@ -139,7 +147,7 @@ class OnlineSessionManager:
             servers = {}
             snapshot = list(self._sessions.values())
             for session in snapshot:
-                if session.offline or self._stopped:
+                if session.offline or session.interim_disabled or self._stopped:
                     continue
                 try:
                     server = servers.get(session.server_name)

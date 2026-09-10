@@ -88,6 +88,19 @@
       controls.concurrency.type = 'number';
       controls.concurrency.value = '10000';
       row2.appendChild(inputRow('最大并发', controls.concurrency, '同时在途任务上限'));
+      controls.onlineCriteria = document.createElement('select');
+      controls.onlineCriteria.className = 'app-field-select app-perf-onlinecriteria-select';
+      [
+        ['accounting', '计费上线成功（默认）'],
+        ['auth', '认证成功']
+      ].forEach(function (item) {
+        var option = document.createElement('option');
+        option.value = item[0];
+        option.textContent = item[1];
+        controls.onlineCriteria.appendChild(option);
+      });
+      row2.appendChild(inputRow('在线判定依据', controls.onlineCriteria,
+        '服务端不支撑计费时可选「认证成功」，计费失败不再影响在线统计'));
       form.appendChild(row2);
 
       var row3 = document.createElement('div');
@@ -126,7 +139,7 @@
       acctBox.className = 'app-field';
       var acctHint = document.createElement('span');
       acctHint.className = 'app-field-hint';
-      acctHint.textContent = '关闭后不统计在线数';
+      acctHint.textContent = '关闭后不发送计费报文；在线判定依据选「认证成功」时仍统计在线数';
       acctBox.appendChild(acctRow);
       acctBox.appendChild(acctHint);
       row3.appendChild(acctBox);
@@ -244,7 +257,8 @@
           rate: parseFloat(controls.rate.value) || 10,
           concurrency: parseInt(controls.concurrency.value, 10) || 10000,
           save_packets: controls.savePackets.checked,
-          enable_accounting: controls.accounting.checked
+          enable_accounting: controls.accounting.checked,
+          online_criteria: controls.onlineCriteria.value
         };
         if (!payload.server_name) {
           global.RtUI.toast('请先选择 RADIUS Server', 'warning');
@@ -258,7 +272,8 @@
           ['测试速率', payload.rate + ' 次/秒'],
           ['测试协议', payload.protocol],
           ['保存报文', payload.save_packets ? '是' : '否'],
-          ['启用计费', payload.enable_accounting ? '是' : '否']
+          ['启用计费', payload.enable_accounting ? '是' : '否'],
+          ['在线判定依据', payload.online_criteria === 'auth' ? '认证成功' : '计费上线成功']
         ]).then(function (confirmed) {
           if (!confirmed) {
             return null;

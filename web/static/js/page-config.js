@@ -232,7 +232,6 @@
           ['软件名称', info.software_name],
           ['软件版本', info.software_version],
           ['软件说明', info.software_description],
-          ['前端版本', info.frontend_version],
           ['Python 版本', info.python_version],
           ['操作系统', info.platform],
           ['数据目录', info.data_dir],

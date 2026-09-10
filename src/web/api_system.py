@@ -49,7 +49,6 @@ async def system_info():
         "software_name": version.SOFTWARE_NAME,
         "software_version": version.SOFTWARE_VERSION,
         "software_description": version.SOFTWARE_DESCRIPTION,
-        "frontend_version": version.FRONTEND_VERSION,
         "python_version": sys.version.split()[0],
         "platform": platform.platform(),
         "system": platform.system(),

@@ -30,7 +30,7 @@ class TaskOutcome:
     """单次用户测试的产出。"""
 
     __slots__ = ("username", "success", "online", "status", "response_time",
-                 "error", "authorization", "session_id")
+                 "error", "authorization", "session_id", "acct_error")
 
     def __init__(self):
         self.username = ""
@@ -41,16 +41,28 @@ class TaskOutcome:
         self.error = ""
         self.authorization = []
         self.session_id = ""
+        # 计费失败原因，仅在「认证成功即在线」口径下作为提示，不影响成败判定
+        self.acct_error = ""
 
 
 # 报文与属性落库由 packets 模块统一提供（与单次测试链路复用）
+
+
+def _accounting_failure_text(server: dict, acct_result) -> str:
+    """生成计费失败原因，超时场景给出可操作的排查提示。"""
+    port = server.get("accounting_port") or 1813
+    error = getattr(acct_result, "error", "") or ""
+    if "超时" in error:
+        return ("计费无响应（端口 %s 超时）；请确认服务端已对本 NAS 启用计费并授权" % port)
+    return "计费上线失败；%s" % (error or "未收到成功响应")
 
 
 async def run_user_task(client, server: dict, username: str, password: str,
                         protocol: str, task_id: str, save_packets: bool,
                         online_manager: "acct_mod.OnlineSessionManager" = None,
                         enable_accounting: bool = True,
-                        peer_challenge_bytes: int = 8) -> TaskOutcome:
+                        peer_challenge_bytes: int = 8,
+                        online_criteria: str = "accounting") -> TaskOutcome:
     """
     执行一次完整的单用户测试。
 
@@ -65,6 +77,8 @@ async def run_user_task(client, server: dict, username: str, password: str,
         online_manager: 在线会话管理器，None 表示不做在线跟踪
         enable_accounting: 是否在认证成功后发送计费报文
         peer_challenge_bytes: MS-CHAP 对端挑战值字节数
+        online_criteria: 在线判定依据，accounting=计费上线成功才算在线（默认），
+            auth=认证成功即在线（计费失败不阻断）
 
     返回：
         TaskOutcome 对象。
@@ -116,24 +130,34 @@ async def run_user_task(client, server: dict, username: str, password: str,
             acct_result = await client.send_accounting(server, username, 1, session_id)
         except Exception as exc:
             acct_result = None
-            outcome.error = "计费上线异常；%s" % exc
+            outcome.acct_error = "计费上线异常；%s" % exc
         succeeded = bool(acct_result and acct_result.success)
-        if succeeded and online_manager is not None:
+        if not succeeded and not outcome.acct_error:
+            outcome.acct_error = _accounting_failure_text(server, acct_result)
+        if online_criteria == "auth":
+            # 认证成功即在线：计费失败不阻断成败，仅记录原因
+            outcome.online = True
+            outcome.success = True
+            outcome.status = state_mod.SUCCESS
+        else:
+            outcome.online = succeeded
+            outcome.success = succeeded
+            outcome.status = state_mod.SUCCESS if succeeded else state_mod.FAILED
+            if not succeeded:
+                outcome.error = outcome.acct_error
+        if outcome.online and online_manager is not None:
             await online_manager.add(acct_mod.OnlineSession(
                 username=username,
                 server_name=server_name,
                 session_id=session_id,
                 protocol=protocol,
                 task_id=task_id,
+                # 计费未上线的会话不做 Interim-Update，避免被误判掉线
+                interim_disabled=(not succeeded),
             ))
-        outcome.online = succeeded
-        outcome.success = succeeded
-        outcome.status = state_mod.SUCCESS if succeeded else state_mod.FAILED
-        if not succeeded and not outcome.error:
-            outcome.error = "计费上线失败"
     else:
         outcome.success = True
-        outcome.online = False
+        outcome.online = (online_criteria == "auth")
         outcome.status = state_mod.SUCCESS
 
     _persist(task_id, username, server_name, outcome)

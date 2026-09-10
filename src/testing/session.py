@@ -65,6 +65,9 @@ class TestSession:
         self.started_at = 0.0
         self.finished_at = 0.0
         self._tasks: List[asyncio.Task] = []
+        # 在途登录任务：用户名 -> 在途数量，避免同一用户在任务未完成时被重复派发
+        self._pending: dict = {}
+        self._task_user: dict = {}
         self._runner: Optional[asyncio.Task] = None
         self._stop_event = asyncio.Event()
         self._heartbeat_ok = time.monotonic()
@@ -211,6 +214,7 @@ class TestSession:
             return
         save_packets = bool(self.options.get("save_packets"))
         enable_accounting = bool(self.options.get("enable_accounting", True))
+        online_criteria = str(self.options.get("online_criteria") or "accounting")
         peer_challenge_bytes = int(self.options.get("peer_challenge_bytes") or 8)
         index = 0
         push_deadline = time.monotonic()
@@ -219,6 +223,25 @@ class TestSession:
                 if self.heartbeat_expired():
                     await self.stop(state_mod.HEARTBEAT_TIMEOUT)
                     return
+                # 已在线的用户不再重复登录：在线数上限即用户数，掉线后可重新登录
+                online_names = self._online.online_usernames()
+                picked = None
+                for _ in range(len(users)):
+                    candidate = users[index % len(users)]
+                    index += 1
+                    # 已在线、或已有在途登录任务的用户不再派发
+                    if (candidate[0] not in online_names
+                            and self._pending.get(candidate[0], 0) == 0):
+                        picked = candidate
+                        break
+                if picked is None:
+                    # 全部用户均在线：空闲等待，不消耗速率令牌
+                    if time.monotonic() >= push_deadline:
+                        push_deadline = time.monotonic() + 0.5
+                        await self._push()
+                    await asyncio.sleep(0.2)
+                    continue
+                username, password = picked
                 await self._limiter.acquire()
                 if self._stop_event.is_set():
                     break
@@ -226,13 +249,14 @@ class TestSession:
                     # 任务数量达到上限，按保护策略停止新增
                     await self.stop(state_mod.RESOURCE_LIMIT)
                     return
-                username, password = users[index % len(users)]
-                index += 1
                 user_task = asyncio.create_task(
                     self._execute(server, username, password, save_packets,
-                                  enable_accounting, peer_challenge_bytes)
+                                  enable_accounting, peer_challenge_bytes,
+                                  online_criteria)
                 )
                 self._tasks.append(user_task)
+                self._pending[username] = self._pending.get(username, 0) + 1
+                self._task_user[user_task] = username
                 user_task.add_done_callback(self._on_task_done)
                 # 清理已结束的任务，避免列表无限增长
                 if len(self._tasks) > 20000:
@@ -251,7 +275,8 @@ class TestSession:
 
     async def _execute(self, server: dict, username: str, password: str,
                        save_packets: bool, enable_accounting: bool,
-                       peer_challenge_bytes: int):
+                       peer_challenge_bytes: int,
+                       online_criteria: str = "accounting"):
         """
         执行单个用户任务，释放并发额度。
 
@@ -262,7 +287,7 @@ class TestSession:
             return await task_mod.run_user_task(
                 self._client, server, username, password, self.protocol,
                 self.task_id, save_packets, self._online,
-                enable_accounting, peer_challenge_bytes,
+                enable_accounting, peer_challenge_bytes, online_criteria,
             )
         except asyncio.CancelledError:
             raise
@@ -276,6 +301,14 @@ class TestSession:
 
     def _on_task_done(self, user_task: asyncio.Task) -> None:
         """用户任务结束回调，累计统计。"""
+        # 先释放在途标记，避免同一用户被重复派发
+        username = self._task_user.pop(user_task, None)
+        if username:
+            remaining = self._pending.get(username, 0) - 1
+            if remaining > 0:
+                self._pending[username] = remaining
+            else:
+                self._pending.pop(username, None)
         self.total += 1
         if user_task.cancelled():
             self.cancelled_count += 1

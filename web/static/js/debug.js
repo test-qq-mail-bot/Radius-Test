@@ -12,8 +12,9 @@
 (function (global) {
   'use strict';
 
-  var JS_VERSION = '20260830-V1';
-  var SOFTWARE_VERSION = '20260830-V1';
+  // 全程序使用同一个版本号：注入前为占位值，启动后由 systemInfo 覆盖
+  var JS_VERSION = '20260910-V1';
+  var SOFTWARE_VERSION = '20260910-V1';
   var enabled = false;
   var currentPage = 'home';
 
@@ -76,16 +77,14 @@
     setSoftwareVersion: function (value) {
       if (value) {
         SOFTWARE_VERSION = value;
-        // 软件版本注入时同步兜底前端版本，避免版本号不一致
-        if (!JS_VERSION || JS_VERSION === '20260830-V1') {
-          JS_VERSION = value;
-        }
+        JS_VERSION = value;
       }
     },
-    /* 注入前端静态资源版本（来自后端 systemInfo.frontend_version） */
+    /* 注入版本号（前后端同一版本号，来自后端 systemInfo.software_version） */
     setJsVersion: function (value) {
       if (value) {
         JS_VERSION = value;
+        SOFTWARE_VERSION = value;
       }
     },
     /* 记录用户点击：包含点击时间、点击位置、HTML class、操作结果 */

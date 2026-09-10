@@ -114,7 +114,13 @@ async def start_task(payload: Dict[str, Any]):
         "interim_interval": int(config["test"]["interim_interval"]),
         "interim_max_fail": int(config["test"]["interim_max_fail"]),
         "peer_challenge_bytes": int(config["radius"]["mschap_peer_challenge_bytes"]),
+        "online_criteria": str(
+            payload.get("online_criteria")
+            or config["test"].get("online_criteria")
+            or "accounting"),
     }
+    if options["online_criteria"] not in ("accounting", "auth"):
+        raise HTTPException(status_code=400, detail="在线判定依据非法，可选 accounting / auth")
     if options["rate"] <= 0:
         raise HTTPException(status_code=400, detail="测试速率必须大于 0")
     if options["concurrency"] <= 0:
