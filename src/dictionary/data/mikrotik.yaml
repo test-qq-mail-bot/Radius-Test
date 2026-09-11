@@ -13,67 +13,89 @@ vendor_id: 14988
 attributes:
 - id: 1
   name: Mikrotik-Recv-Limit
+  name_zh: 接收限制
   type: integer
 - id: 2
   name: Mikrotik-Xmit-Limit
+  name_zh: 发送限制
   type: integer
 - id: 3
   name: Mikrotik-Group
+  name_zh: 组
   type: string
 - id: 4
   name: Mikrotik-Wireless-Forward
+  name_zh: 无线转发
   type: integer
 - id: 5
   name: Mikrotik-Wireless-Skip-Dot1x
+  name_zh: 无线跳过802.1X
   type: integer
 - id: 6
   name: Mikrotik-Wireless-Enc-Algo
+  name_zh: 无线加密算法
   type: integer
 - id: 7
   name: Mikrotik-Wireless-Enc-Key
+  name_zh: 无线加密密钥
   type: string
 - id: 8
   name: Mikrotik-Rate-Limit
+  name_zh: 速率限制
   type: string
 - id: 9
   name: Mikrotik-Realm
+  name_zh: 域
   type: string
 - id: 10
   name: Mikrotik-Host-IP
+  name_zh: 主机IP
   type: ipaddr
 - id: 11
   name: Mikrotik-Mark-Id
+  name_zh: 标记ID
   type: string
 - id: 12
   name: Mikrotik-Advertise-URL
+  name_zh: 通告URL
   type: string
 - id: 13
   name: Mikrotik-Advertise-Interval
+  name_zh: 通告间隔
   type: integer
 - id: 14
   name: Mikrotik-Recv-Limit-Gigawords
+  name_zh: 接收限制吉字计数
   type: integer
 - id: 15
   name: Mikrotik-Xmit-Limit-Gigawords
+  name_zh: 发送限制吉字计数
   type: integer
 - id: 16
   name: Mikrotik-Wireless-PSK
+  name_zh: 无线PSK
   type: string
 - id: 17
   name: Mikrotik-Total-Limit
+  name_zh: 总计限制
   type: integer
 - id: 18
   name: Mikrotik-Total-Limit-Gigawords
+  name_zh: 总计限制吉字计数
   type: integer
 - id: 19
   name: Mikrotik-Address-List
+  name_zh: 地址列表
   type: string
 - id: 20
   name: Mikrotik-Wireless-MPKey
+  name_zh: 无线主密钥
   type: string
 - id: 21
   name: Mikrotik-Wireless-Comment
+  name_zh: 无线备注
   type: string
 - id: 22
   name: Mikrotik-Delegated-IPv6-Pool
+  name_zh: 委派IPv6地址池
   type: string

@@ -13,94 +13,125 @@ vendor_id: 2636
 attributes:
 - id: 1
   name: Juniper-Local-User-Name
+  name_zh: 本地用户名
   type: string
 - id: 2
   name: Juniper-Allow-Commands
+  name_zh: 允许命令
   type: string
 - id: 3
   name: Juniper-Deny-Commands
+  name_zh: 拒绝命令
   type: string
 - id: 4
   name: Juniper-Allow-Configuration
+  name_zh: 允许配置
   type: string
 - id: 5
   name: Juniper-Deny-Configuration
+  name_zh: 拒绝配置
   type: string
 - id: 8
   name: Juniper-Interactive-Command
+  name_zh: 交互式命令
   type: string
 - id: 9
   name: Juniper-Configuration-Change
+  name_zh: 配置变更
   type: string
 - id: 10
   name: Juniper-User-Permissions
+  name_zh: 用户权限
   type: string
 - id: 11
   name: Juniper-Junosspace-Profile
+  name_zh: Junos Space配置文件
   type: string
 - id: 21
   name: Juniper-CTP-Group
+  name_zh: CTP组
   type: integer
 - id: 22
   name: Juniper-CTPView-APP-Group
+  name_zh: CTPView应用组
   type: integer
 - id: 23
   name: Juniper-CTPView-OS-Group
+  name_zh: CTPView操作系统组
   type: integer
 - id: 31
   name: Juniper-Primary-Dns
+  name_zh: 主DNS
   type: ipaddr
 - id: 32
   name: Juniper-Primary-Wins
+  name_zh: 主WINS
   type: ipaddr
 - id: 33
   name: Juniper-Secondary-Dns
+  name_zh: 备DNS
   type: ipaddr
 - id: 34
   name: Juniper-Secondary-Wins
+  name_zh: 备WINS
   type: ipaddr
 - id: 35
   name: Juniper-Interface-id
+  name_zh: 接口ID
   type: string
 - id: 36
   name: Juniper-Ip-Pool-Name
+  name_zh: IP地址池名称
   type: string
 - id: 37
   name: Juniper-Keep-Alive
+  name_zh: 保活
   type: integer
 - id: 38
   name: Juniper-CoS-Traffic-Control-Profile
+  name_zh: CoS流量控制配置文件
   type: string
 - id: 39
   name: Juniper-CoS-Parameter
+  name_zh: CoS参数
   type: string
 - id: 40
   name: Juniper-encapsulation-overhead
+  name_zh: 封装开销
   type: integer
 - id: 41
   name: Juniper-cell-overhead
+  name_zh: 信元开销
   type: integer
 - id: 42
   name: Juniper-tx-connect-speed
+  name_zh: 发送连接速率
   type: integer
 - id: 43
   name: Juniper-rx-connect-speed
+  name_zh: 接收连接速率
   type: integer
 - id: 44
   name: Juniper-Firewall-filter-name
+  name_zh: 防火墙过滤名称
   type: string
 - id: 45
   name: Juniper-Policer-Parameter
+  name_zh: 限速器参数
   type: string
 - id: 46
   name: Juniper-Local-Group-Name
+  name_zh: 本地组名称
   type: string
 - id: 47
   name: Juniper-Local-Interface
+  name_zh: 本地接口
   type: string
 - id: 48
   name: Juniper-Switching-Filter
+  name_zh: 交换过滤
   type: string
 - id: 49
   name: Juniper-VoIP-Vlan
+  name_zh: 语音VLAN
   type: string

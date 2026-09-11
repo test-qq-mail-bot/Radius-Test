@@ -13,34 +13,45 @@ vendor_id: 14122
 attributes:
 - id: 1
   name: WISPr-Location-ID
+  name_zh: 位置ID
   type: string
 - id: 2
   name: WISPr-Location-Name
+  name_zh: 位置名称
   type: string
 - id: 3
   name: WISPr-Logoff-URL
+  name_zh: 登出URL
   type: string
 - id: 4
   name: WISPr-Redirection-URL
+  name_zh: 重定向URL
   type: string
 - id: 5
   name: WISPr-Bandwidth-Min-Up
+  name_zh: 最小上行带宽
   type: integer
 - id: 6
   name: WISPr-Bandwidth-Min-Down
+  name_zh: 最小下行带宽
   type: integer
 - id: 7
   name: WISPr-Bandwidth-Max-Up
+  name_zh: 最大上行带宽
   type: integer
 - id: 8
   name: WISPr-Bandwidth-Max-Down
+  name_zh: 最大下行带宽
   type: integer
 - id: 9
   name: WISPr-Session-Terminate-Time
+  name_zh: 会话终止时间
   type: string
 - id: 10
   name: WISPr-Session-Terminate-End-Of-Day
+  name_zh: 会话日终终止
   type: string
 - id: 11
   name: WISPr-Billing-Class-Of-Service
+  name_zh: 计费服务等级
   type: string

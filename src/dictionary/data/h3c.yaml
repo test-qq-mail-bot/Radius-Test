@@ -13,73 +13,97 @@ vendor_id: 25506
 attributes:
 - id: 1
   name: H3C-Input-Peak-Rate
+  name_zh: 入方向峰值速率
   type: integer
 - id: 2
   name: H3C-Input-Average-Rate
+  name_zh: 入方向平均速率
   type: integer
 - id: 3
   name: H3C-Input-Basic-Rate
+  name_zh: 入方向基础速率
   type: integer
 - id: 15
   name: H3C-Remanent-Volume
+  name_zh: 剩余流量
   type: integer
 - id: 20
   name: H3C-Command
+  name_zh: 命令
   type: integer
 - id: 24
   name: H3C-Control-Identifier
+  name_zh: 控制标识
   type: integer
 - id: 25
   name: H3C-Result-Code
+  name_zh: 结果码
   type: integer
 - id: 26
   name: H3C-Connect_Id
+  name_zh: 连接ID
   type: integer
 - id: 28
   name: H3C-Ftp-Directory
+  name_zh: FTP目录
   type: string
 - id: 29
   name: H3C-Exec-Privilege
+  name_zh: 执行特权
   type: integer
 - id: 59
   name: H3C-NAS-Startup-Timestamp
+  name_zh: NAS启动时间戳
   type: integer
 - id: 60
   name: H3C-Ip-Host-Addr
+  name_zh: IP主机地址
   type: string
 - id: 61
   name: H3C-User-Notify
+  name_zh: 用户通知
   type: string
 - id: 62
   name: H3C-User-HeartBeat
+  name_zh: 用户心跳
   type: string
 - id: 140
   name: H3C-User-Group
+  name_zh: 用户组
   type: string
 - id: 141
   name: H3C-Security-Level
+  name_zh: 安全级别
   type: integer
 - id: 201
   name: H3C-Input-Interval-Octets
+  name_zh: 入方向间隔字节数
   type: integer
 - id: 202
   name: H3C-Output-Interval-Octets
+  name_zh: 出方向间隔字节数
   type: integer
 - id: 203
   name: H3C-Input-Interval-Packets
+  name_zh: 入方向间隔包数
   type: integer
 - id: 204
   name: H3C-Output-Interval-Packets
+  name_zh: 出方向间隔包数
   type: integer
 - id: 205
   name: H3C-Input-Interval-Gigawords
+  name_zh: 入方向间隔吉字计数
   type: integer
 - id: 206
   name: H3C-Output-Interval-Gigawords
+  name_zh: 出方向间隔吉字计数
   type: integer
 - id: 207
   name: H3C-Backup-NAS-IP
+  name_zh: 备份NAS IP
   type: ipaddr
 - id: 255
   name: H3C-Product-ID
+  name_zh: 产品ID
   type: string

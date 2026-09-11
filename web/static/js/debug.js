@@ -13,8 +13,8 @@
   'use strict';
 
   // 全程序使用同一个版本号：注入前为占位值，启动后由 systemInfo 覆盖
-  var JS_VERSION = '20260911-V2';
-  var SOFTWARE_VERSION = '20260911-V2';
+  var JS_VERSION = '20260911-V3';
+  var SOFTWARE_VERSION = '20260911-V3';
   var enabled = false;
   var currentPage = 'home';
 

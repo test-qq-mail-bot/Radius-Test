@@ -13,55 +13,73 @@ vendor_id: 11
 attributes:
 - id: 1
   name: HP-Privilege-Level
+  name_zh: 特权级别
   type: integer
 - id: 2
   name: HP-Command-String
+  name_zh: 命令字符串
   type: string
 - id: 3
   name: HP-Command-Exception
+  name_zh: 命令例外
   type: integer
 - id: 10
   name: HP-Port-Client-Limit-Dot1x
+  name_zh: 端口802.1X客户端数限制
   type: integer
 - id: 11
   name: HP-Port-Client-Limit-MA
+  name_zh: 端口MAC认证客户端数限制
   type: integer
 - id: 12
   name: HP-Port-Client-Limit-WA
+  name_zh: 端口Web认证客户端数限制
   type: integer
 - id: 13
   name: HP-Port-Auth-Mode-Dot1x
+  name_zh: 端口802.1X认证模式
   type: integer
 - id: 26
   name: HP-Management-Protocol
+  name_zh: 管理协议
   type: integer
 - id: 40
   name: HP-Cos
+  name_zh: CoS(服务等级)
   type: string
 - id: 40
   name: HP-Port-Priority-Regeneration-Table
+  name_zh: 端口优先级再生表
   type: string
 - id: 46
   name: HP-Bandwidth-Max-Ingress
+  name_zh: 最大入方向带宽
   type: integer
 - id: 48
   name: HP-Bandwidth-Max-Egress
+  name_zh: 最大出方向带宽
   type: integer
 - id: 61
   name: HP-Ip-Filter-Raw
+  name_zh: IP过滤原始数据
   type: string
 - id: 61
   name: HP-Nas-Filter-Rule
+  name_zh: NAS过滤规则
   type: string
 - id: 63
   name: HP-Nas-Rules-IPv6
+  name_zh: NAS IPv6规则
   type: integer
 - id: 64
   name: HP-Egress-VLANID
+  name_zh: 出方向VLAN ID
   type: integer
 - id: 65
   name: HP-Egress-VLAN-Name
+  name_zh: 出方向VLAN名称
   type: string
 - id: 255
   name: HP-Capability-Advert
+  name_zh: 能力通告
   type: octets

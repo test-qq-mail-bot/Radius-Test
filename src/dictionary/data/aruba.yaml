@@ -13,100 +13,133 @@ vendor_id: 14823
 attributes:
 - id: 1
   name: Aruba-User-Role
+  name_zh: 用户角色
   type: string
 - id: 2
   name: Aruba-User-Vlan
+  name_zh: 用户VLAN
   type: integer
 - id: 3
   name: Aruba-Priv-Admin-User
+  name_zh: 特权管理员用户
   type: integer
 - id: 4
   name: Aruba-Admin-Role
+  name_zh: 管理员角色
   type: string
 - id: 5
   name: Aruba-Essid-Name
+  name_zh: ESSID名称
   type: string
 - id: 6
   name: Aruba-Location-Id
+  name_zh: 位置ID
   type: string
 - id: 7
   name: Aruba-Port-Identifier
+  name_zh: 端口标识
   type: string
 - id: 8
   name: Aruba-MMS-User-Template
+  name_zh: MMS用户模板
   type: string
 - id: 9
   name: Aruba-Named-User-Vlan
+  name_zh: 命名用户VLAN
   type: string
 - id: 10
   name: Aruba-AP-Group
+  name_zh: AP组
   type: string
 - id: 11
   name: Aruba-Framed-IPv6-Address
+  name_zh: 帧IPv6地址
   type: string
 - id: 12
   name: Aruba-Device-Type
+  name_zh: 设备类型
   type: string
 - id: 14
   name: Aruba-No-DHCP-Fingerprint
+  name_zh: 无DHCP指纹
   type: integer
 - id: 15
   name: Aruba-Mdps-Device-Udid
+  name_zh: MDPS设备UDID
   type: string
 - id: 16
   name: Aruba-Mdps-Device-Imei
+  name_zh: MDPS设备IMEI
   type: string
 - id: 17
   name: Aruba-Mdps-Device-Iccid
+  name_zh: MDPS设备ICCID
   type: string
 - id: 18
   name: Aruba-Mdps-Max-Devices
+  name_zh: MDPS最大设备数
   type: integer
 - id: 19
   name: Aruba-Mdps-Device-Name
+  name_zh: MDPS设备名称
   type: string
 - id: 20
   name: Aruba-Mdps-Device-Product
+  name_zh: MDPS设备产品
   type: string
 - id: 21
   name: Aruba-Mdps-Device-Version
+  name_zh: MDPS设备版本
   type: string
 - id: 22
   name: Aruba-Mdps-Device-Serial
+  name_zh: MDPS设备序列号
   type: string
 - id: 23
   name: Aruba-CPPM-Role
+  name_zh: CPPM角色
   type: string
 - id: 24
   name: Aruba-AirGroup-User-Name
+  name_zh: AirGroup用户名
   type: string
 - id: 25
   name: Aruba-AirGroup-Shared-User
+  name_zh: AirGroup共享用户
   type: string
 - id: 26
   name: Aruba-AirGroup-Shared-Role
+  name_zh: AirGroup共享角色
   type: string
 - id: 27
   name: Aruba-AirGroup-Device-Type
+  name_zh: AirGroup设备类型
   type: integer
 - id: 28
   name: Aruba-Auth-Survivability
+  name_zh: 认证生存性
   type: string
 - id: 29
   name: Aruba-AS-User-Name
+  name_zh: AS用户名
   type: string
 - id: 30
   name: Aruba-AS-Credential-Hash
+  name_zh: AS凭据哈希
   type: string
 - id: 31
   name: Aruba-WorkSpace-App-Name
+  name_zh: 工作空间应用名称
   type: string
 - id: 32
   name: Aruba-Mdps-Provisioning-Settings
+  name_zh: MDPS供应设置
   type: string
 - id: 33
   name: Aruba-Mdps-Device-Profile
+  name_zh: MDPS设备配置文件
   type: string
 - id: 34
   name: Aruba-AP-IP-Address
+  name_zh: AP IP地址
   type: ipaddr
