@@ -12,746 +12,746 @@ vendor_id: 2011
 attributes:
   - id: 1
     name: "HW-Input-Peak-Information-Rate"
-    name_zh: "HW-Input-Peak-Information-Rate"
+    name_zh: "入方向峰值信息速率"
     type: integer
     desc: "用户接入到NAS的报文峰值信息速率（Peak Information Rate），即最大能够通过的速率。整数形式，4字节，单位为bit/s。HW-Input-Peak-Information-Rate必须大于等于HW-Input-Committed-Information-Rate，缺省值等于HW-Input-Committed-Information-Rate。"
   - id: 2
     name: "HW-Input-Committed-Information-Rate"
-    name_zh: "HW-Input-Committed-Information-Rate"
+    name_zh: "入方向承诺信息速率"
     type: integer
     desc: "用户接入到NAS的报文承诺信息速率（Committed Information Rate），即保证能够通过的平均速率。整数形式，4字节，单位为bit/s。"
   - id: 3
     name: "HW-Input-Committed-Burst-Size"
-    name_zh: "HW-Input-Committed-Burst-Size"
+    name_zh: "入方向承诺突发尺寸"
     type: integer
     desc: "用户接入到NAS的报文承诺突发尺寸（Committed Burst Size），即瞬间能够通过的承诺突发流量。整数形式，4字节，单位为bit。"
   - id: 4
     name: "HW-Output-Peak-Information-Rate"
-    name_zh: "HW-Output-Peak-Information-Rate"
+    name_zh: "出方向峰值信息速率"
     type: integer
     desc: "从NAS到用户的报文峰值信息速率。整数形式，4字节，单位为bit/s。HW-Output-Peak-Information-Rate必须大于等于HW-Output-Committed-Information-Rate，缺省值等于HW-Output-Committed-Information-Rate。"
   - id: 5
     name: "HW-Output-Committed-Information-Rate"
-    name_zh: "HW-Output-Committed-Information-Rate"
+    name_zh: "出方向承诺信息速率"
     type: integer
     desc: "从NAS到用户的报文承诺信息速率。整数形式，4字节，单位为bit/s。"
   - id: 6
     name: "HW-Output-Committed-Burst-Size"
-    name_zh: "HW-Output-Committed-Burst-Size"
+    name_zh: "出方向承诺突发尺寸"
     type: integer
     desc: "从NAS到用户的报文承诺突发尺寸。整数形式，4字节，单位为bit。"
   - id: 7
     name: "In-Kb-Before-T-Switch"
-    name_zh: "In-Kb-Before-T-Switch"
+    name_zh: "交换机前入方向千字节数"
     type: octets
   - id: 8
     name: "Out-Kb-Before-T-Switch"
-    name_zh: "Out-Kb-Before-T-Switch"
+    name_zh: "交换机前出方向千字节数"
     type: octets
   - id: 9
     name: "In-Pkt-Before-T-Switch"
-    name_zh: "In-Pkt-Before-T-Switch"
+    name_zh: "交换机前入方向包数"
     type: octets
   - id: 10
     name: "Out-Pkt-Before-T-Switch"
-    name_zh: "Out-Pkt-Before-T-Switch"
+    name_zh: "交换机前出方向包数"
     type: octets
   - id: 11
     name: "In-Kb-After-T-Switch"
-    name_zh: "In-Kb-After-T-Switch"
+    name_zh: "交换机后入方向千字节数"
     type: octets
   - id: 12
     name: "Out-Kb-After-T-Switch"
-    name_zh: "Out-Kb-After-T-Switch"
+    name_zh: "交换机后出方向千字节数"
     type: octets
   - id: 13
     name: "In-Pkt-After-T-Switch"
-    name_zh: "In-Pkt-After-T-Switch"
+    name_zh: "交换机后入方向包数"
     type: octets
   - id: 14
     name: "Out-Pkt-After-T-Switch"
-    name_zh: "Out-Pkt-After-T-Switch"
+    name_zh: "交换机后出方向包数"
     type: octets
   - id: 15
     name: "HW-Remanent-Volume"
-    name_zh: "HW-Remanent-Volume"
+    name_zh: "剩余流量"
     type: integer
     desc: "剩余流量。单位为KB。"
   - id: 16
     name: "Tariff-Switch-Interval"
-    name_zh: "Tariff-Switch-Interval"
+    name_zh: "资费切换间隔"
     type: octets
   - id: 17
     name: "HW-Subscriber-QoS-Profile"
-    name_zh: "HW-Subscriber-QoS-Profile"
+    name_zh: "用户服务质量模板"
     type: string
     desc: "QoS模板名称。"
   - id: 18
     name: "HW-UserName-Access-Limit"
-    name_zh: "HW-UserName-Access-Limit"
+    name_zh: "用户名接入限制"
     type: integer
     desc: "根据用户名进行接入数限制，表示限制一个用户名接入的用户个数。0表示不允许接入，0xFFFFFFFF（4294967295）表示不进行限制，1表示一个用户名允许接入1个用户，依次类推。"
   - id: 20
     name: "Command"
-    name_zh: "Command"
+    name_zh: "命令"
     type: octets
   - id: 22
     name: "Priority"
-    name_zh: "Priority"
+    name_zh: "优先级"
     type: octets
   - id: 24
     name: "Control-Identifier"
-    name_zh: "Control-Identifier"
+    name_zh: "控制标识"
     type: octets
   - id: 25
     name: "Result-Code"
-    name_zh: "Result-Code"
+    name_zh: "结果码"
     type: octets
   - id: 26
     name: "HW-Connect-ID"
-    name_zh: "HW-Connect-ID"
+    name_zh: "连接标识"
     type: integer
     desc: "用户连接的索引。"
   - id: 27
     name: "PortalURL"
-    name_zh: "PortalURL"
+    name_zh: "Portal地址"
     type: string
   - id: 28
     name: "HW-FTP-Directory"
-    name_zh: "HW-FTP-Directory"
+    name_zh: "FTP目录"
     type: string
     desc: "FTP用户的初始目录。"
   - id: 29
     name: "HW-Exec-Privilege"
-    name_zh: "HW-Exec-Privilege"
+    name_zh: "执行权限"
     type: integer
     desc: "管理用户（例如Telnet用户）的优先级，有效值范围0～15。授权大于等于16的为无效值。"
   - id: 30
     name: "IP-Address"
-    name_zh: "IP-Address"
+    name_zh: "IP地址"
     type: octets
   - id: 31
     name: "HW-Qos-Data"
-    name_zh: "HW-Qos-Data"
+    name_zh: "服务质量数据"
     type: string
     desc: "QoS模板名，最大长度为31字节。RADIUS服务器通过该字段下发QoS模板用于配置流量监管，QoS模板必须在设备上已存在，并已通过命令car（QoS模板视图）配置流量监管。"
   - id: 32
     name: "SIP-Server"
-    name_zh: "SIP-Server"
+    name_zh: "SIP服务器"
     type: string
   - id: 33
     name: "HW-VoiceVlan"
-    name_zh: "HW-VoiceVlan"
+    name_zh: "语音VLAN"
     type: integer
     desc: "语音VLAN授权标记，数值为1表示授权的VLAN为Voice VLAN。与VLAN授权属性配合使用。"
   - id: 34
     name: "Command-Mode"
-    name_zh: "Command-Mode"
+    name_zh: "命令模式"
     type: string
   - id: 35
     name: "HW-ProxyRdsPkt"
-    name_zh: "HW-ProxyRdsPkt"
+    name_zh: "代理RADIUS报文"
     type: integer
     desc: "RADIUS服务器是否为代理服务器："
   - id: 36
     name: "Rebinding-Time"
-    name_zh: "Rebinding-Time"
+    name_zh: "续租时间"
     type: octets
   - id: 37
     name: "IGMP-Enable"
-    name_zh: "IGMP-Enable"
+    name_zh: "IGMP使能"
     type: octets
   - id: 39
     name: "Destnation-IP-Addr"
-    name_zh: "Destnation-IP-Addr"
+    name_zh: "目的IP地址"
     type: string
   - id: 40
     name: "Destnation-Volume"
-    name_zh: "Destnation-Volume"
+    name_zh: "目的流量"
     type: string
   - id: 59
     name: "HW-NAS-Startup-Time-Stamp"
-    name_zh: "HW-NAS-Startup-Time-Stamp"
+    name_zh: "NAS启动时间戳"
     type: integer
     desc: "NAS设备启动时间，从1970年1月1日0点0分0秒时开始计算（以秒为单位）。"
   - id: 60
     name: "HW-IP-Host-Address"
-    name_zh: "HW-IP-Host-Address"
+    name_zh: "IP主机地址"
     type: string
     desc: "认证和计费报文中携带的用户IP地址和MAC地址，格式为“A.B.C.D hh:hh:hh:hh:hh:hh”，IP地址和MAC地址之间必须用空格分开。"
   - id: 61
     name: "HW-Up-Priority"
-    name_zh: "HW-Up-Priority"
+    name_zh: "上行优先级"
     type: integer
     desc: "用户上行报文的802.1p优先级。"
   - id: 62
     name: "HW-Down-Priority"
-    name_zh: "HW-Down-Priority"
+    name_zh: "下行优先级"
     type: integer
     desc: "用户下行报文的802.1p优先级。"
   - id: 63
     name: "Tunnel-VPN-Instance"
-    name_zh: "Tunnel-VPN-Instance"
+    name_zh: "隧道VPN实例"
     type: string
   - id: 64
     name: "VT-Name"
-    name_zh: "VT-Name"
+    name_zh: "VT名称"
     type: octets
   - id: 65
     name: "User-Date"
-    name_zh: "User-Date"
+    name_zh: "用户日期"
     type: string
   - id: 66
     name: "User-Class"
-    name_zh: "User-Class"
+    name_zh: "用户类别"
     type: string
   - id: 70
     name: "PPP-NCP-Type"
-    name_zh: "PPP-NCP-Type"
+    name_zh: "PPP NCP类型"
     type: octets
   - id: 71
     name: "VSI-Name"
-    name_zh: "VSI-Name"
+    name_zh: "VSI名称"
     type: string
   - id: 72
     name: "Subnet-Mask"
-    name_zh: "Subnet-Mask"
+    name_zh: "子网掩码"
     type: ipaddr
   - id: 73
     name: "Gateway-Address"
-    name_zh: "Gateway-Address"
+    name_zh: "网关地址"
     type: ipaddr
   - id: 74
     name: "Lease-Time"
-    name_zh: "Lease-Time"
+    name_zh: "租期"
     type: octets
   - id: 75
     name: "HW-Primary-WINS"
-    name_zh: "HW-Primary-WINS"
+    name_zh: "主WINS"
     type: ipaddr
     desc: "用户认证成功后，RADIUS下发的主WINS服务器地址。"
   - id: 76
     name: "HW-Second-WINS"
-    name_zh: "HW-Second-WINS"
+    name_zh: "备WINS"
     type: ipaddr
     desc: "用户认证成功后，RADIUS下发的备WINS服务器地址。"
   - id: 77
     name: "HW-Input-Peak-Burst-Size"
-    name_zh: "HW-Input-Peak-Burst-Size"
+    name_zh: "入方向峰值突发尺寸"
     type: integer
     desc: "上行峰值尺寸，以bit/s为单位。"
   - id: 78
     name: "HW-Output-Peak-Burst-Size"
-    name_zh: "HW-Output-Peak-Burst-Size"
+    name_zh: "出方向峰值突发尺寸"
     type: integer
     desc: "下行峰值尺寸，以bit/s为单位。"
   - id: 79
     name: "Reduced-CIR"
-    name_zh: "Reduced-CIR"
+    name_zh: "降速承诺信息速率"
     type: octets
   - id: 80
     name: "Tunnel-Session-Limit"
-    name_zh: "Tunnel-Session-Limit"
+    name_zh: "隧道会话数限制"
     type: octets
   - id: 81
     name: "Zone-Name"
-    name_zh: "Zone-Name"
+    name_zh: "区域名称"
     type: string
   - id: 82
     name: "HW-Data-Filter"
-    name_zh: "HW-Data-Filter"
+    name_zh: "数据过滤"
     type: string
     desc: "RADIUS服务器通过该属性将ACL规则下发给用户。属性格式分为新旧两种，新格式与旧格式相比缩短了ACL格式的长度。"
   - id: 83
     name: "Access-Service"
-    name_zh: "Access-Service"
+    name_zh: "接入服务"
     type: string
   - id: 84
     name: "Accounting-Level"
-    name_zh: "Accounting-Level"
+    name_zh: "计费级别"
     type: octets
   - id: 85
     name: "Portal-Mode"
-    name_zh: "Portal-Mode"
+    name_zh: "Portal模式"
     type: octets
   - id: 86
     name: "DPI-Policy-Name"
-    name_zh: "DPI-Policy-Name"
+    name_zh: "深度包检测策略名"
     type: string
   - id: 87
     name: "Policy-Route"
-    name_zh: "Policy-Route"
+    name_zh: "策略路由"
     type: ipaddr
   - id: 88
     name: "Framed-Pool"
-    name_zh: "Framed-Pool"
+    name_zh: "帧中继地址池"
     type: string
   - id: 89
     name: "L2TP-Terminate-Cause"
-    name_zh: "L2TP-Terminate-Cause"
+    name_zh: "L2TP终止原因"
     type: string
   - id: 90
     name: "Multi-Account-Mode"
-    name_zh: "Multi-Account-Mode"
+    name_zh: "多账号模式"
     type: octets
   - id: 91
     name: "Queue-Profile"
-    name_zh: "Queue-Profile"
+    name_zh: "队列模板"
     type: string
   - id: 92
     name: "Layer4-Session-Limit"
-    name_zh: "Layer4-Session-Limit"
+    name_zh: "四层会话数限制"
     type: octets
   - id: 93
     name: "Multicast-Profile"
-    name_zh: "Multicast-Profile"
+    name_zh: "组播模板"
     type: string
   - id: 94
     name: "VPN-Instance"
-    name_zh: "VPN-Instance"
+    name_zh: "VPN实例"
     type: string
   - id: 95
     name: "Policy-Name"
-    name_zh: "Policy-Name"
+    name_zh: "策略名称"
     type: string
   - id: 96
     name: "Tunnel-Group-Name"
-    name_zh: "Tunnel-Group-Name"
+    name_zh: "隧道组名称"
     type: string
   - id: 97
     name: "Multicast-Source-Group"
-    name_zh: "Multicast-Source-Group"
+    name_zh: "组播源组"
     type: string
   - id: 98
     name: "Multicast-Receive-Group"
-    name_zh: "Multicast-Receive-Group"
+    name_zh: "组播接收组"
     type: ipaddr
   - id: 99
     name: "User-Multicast-Type"
-    name_zh: "User-Multicast-Type"
+    name_zh: "用户组播类型"
     type: octets
   - id: 100
     name: "Reduced-PIR"
-    name_zh: "Reduced-PIR"
+    name_zh: "降速峰值信息速率"
     type: octets
   - id: 101
     name: "LI-ID"
-    name_zh: "LI-ID"
+    name_zh: "合法监听标识"
     type: string
   - id: 102
     name: "LI-Md-Address"
-    name_zh: "LI-Md-Address"
+    name_zh: "合法监听采集器地址"
     type: ipaddr
   - id: 103
     name: "LI-Md-Port"
-    name_zh: "LI-Md-Port"
+    name_zh: "合法监听采集器端口"
     type: octets
   - id: 104
     name: "LI-Md-VpnInstance"
-    name_zh: "LI-Md-VpnInstance"
+    name_zh: "合法监听采集器VPN实例"
     type: string
   - id: 105
     name: "Service-Chg-Cmd"
-    name_zh: "Service-Chg-Cmd"
+    name_zh: "业务变更命令"
     type: octets
   - id: 106
     name: "Acct-Packet-Type"
-    name_zh: "Acct-Packet-Type"
+    name_zh: "计费报文类型"
     type: octets
   - id: 107
     name: "Call-Reference"
-    name_zh: "Call-Reference"
+    name_zh: "呼叫参考"
     type: octets
   - id: 108
     name: "PSTN-Port"
-    name_zh: "PSTN-Port"
+    name_zh: "PSTN端口"
     type: octets
   - id: 109
     name: "Voip-Service-Type"
-    name_zh: "Voip-Service-Type"
+    name_zh: "VoIP业务类型"
     type: octets
   - id: 110
     name: "Acct-Connection-Time"
-    name_zh: "Acct-Connection-Time"
+    name_zh: "计费连接时长"
     type: octets
   - id: 112
     name: "Error-Reason"
-    name_zh: "Error-Reason"
+    name_zh: "错误原因"
     type: octets
   - id: 113
     name: "Remain-Monney"
-    name_zh: "Remain-Monney"
+    name_zh: "剩余金额"
     type: octets
   - id: 123
     name: "Org-GK-ipaddr"
-    name_zh: "Org-GK-ipaddr"
+    name_zh: "原始关守IP地址"
     type: ipaddr
   - id: 124
     name: "Org-GW-ipaddr"
-    name_zh: "Org-GW-ipaddr"
+    name_zh: "原始网关IP地址"
     type: ipaddr
   - id: 125
     name: "Dst-GK-ipaddr"
-    name_zh: "Dst-GK-ipaddr"
+    name_zh: "目的关守IP地址"
     type: ipaddr
   - id: 126
     name: "Dst-GW-ipaddr"
-    name_zh: "Dst-GW-ipaddr"
+    name_zh: "目的网关IP地址"
     type: ipaddr
   - id: 127
     name: "Access-Num"
-    name_zh: "Access-Num"
+    name_zh: "接入号码"
     type: string
   - id: 128
     name: "Remain-Time"
-    name_zh: "Remain-Time"
+    name_zh: "剩余时长"
     type: octets
   - id: 131
     name: "Codec-Type"
-    name_zh: "Codec-Type"
+    name_zh: "编解码类型"
     type: octets
   - id: 132
     name: "Transfer-Num"
-    name_zh: "Transfer-Num"
+    name_zh: "转移号码"
     type: string
   - id: 133
     name: "New-User-Name"
-    name_zh: "New-User-Name"
+    name_zh: "新用户名"
     type: string
   - id: 134
     name: "Transfer-Station-Id"
-    name_zh: "Transfer-Station-Id"
+    name_zh: "转移终端标识"
     type: string
   - id: 135
     name: "HW-Client-Primary-DNS"
-    name_zh: "HW-Client-Primary-DNS"
+    name_zh: "客户端主DNS"
     type: ipaddr
     desc: "用户认证成功后，RADIUS下发的主DNS服务器地址。"
   - id: 136
     name: "HW-Client-Secondary-DNS"
-    name_zh: "HW-Client-Secondary-DNS"
+    name_zh: "客户端备DNS"
     type: ipaddr
     desc: "用户认证成功后，RADIUS下发的备DNS服务器地址。"
   - id: 137
     name: "ONLY-Account-Type"
-    name_zh: "ONLY-Account-Type"
+    name_zh: "仅计费类型"
     type: octets
   - id: 138
     name: "HW-Domain-Name"
-    name_zh: "HW-Domain-Name"
+    name_zh: "域名"
     type: string
     desc: "用户实际所属域的域名。不一定是用户名中的域名，可能是强制域的域名。"
   - id: 139
     name: "ANCP-Profile"
-    name_zh: "ANCP-Profile"
+    name_zh: "ANCP模板"
     type: string
   - id: 140
     name: "HTTP-Redirect-URL"
-    name_zh: "HTTP-Redirect-URL"
+    name_zh: "HTTP重定向地址"
     type: string
   - id: 141
     name: "HW-AP-Information"
-    name_zh: "HW-AP-Information"
+    name_zh: "AP信息"
     type: string
     desc: "无线用户认证时携带的AP的MAC，格式为H-H-H，其中H为4位的十六进制数。"
   - id: 142
     name: "HW-User-Information"
-    name_zh: "HW-User-Information"
+    name_zh: "用户信息"
     type: string
     desc: "RADIUS服务器为EAPoL（Extensible Authentication Protocol over LAN）用户下发的用户安全检查控制信息，通知用户需要进行哪些安全检查。"
   - id: 143
     name: "Max-List-Num"
-    name_zh: "Max-List-Num"
+    name_zh: "最大列表编号"
     type: octets
   - id: 144
     name: "Acct-IPv6-Input-Octets"
-    name_zh: "Acct-IPv6-Input-Octets"
+    name_zh: "计费IPv6入方向字节数"
     type: octets
   - id: 145
     name: "Acct-IPv6-Output-Octets"
-    name_zh: "Acct-IPv6-Output-Octets"
+    name_zh: "计费IPv6出方向字节数"
     type: octets
   - id: 146
     name: "HW-Service-Scheme"
-    name_zh: "HW-Service-Scheme"
+    name_zh: "业务方案"
     type: string
     desc: "业务方案的名称。业务方案下通常配置用户的授权信息和策略。"
   - id: 147
     name: "Acct-IPv6-Output-Packets"
-    name_zh: "Acct-IPv6-Output-Packets"
+    name_zh: "计费IPv6出方向包数"
     type: octets
   - id: 148
     name: "Acct-IPv6-Input-Gigawords"
-    name_zh: "Acct-IPv6-Input-Gigawords"
+    name_zh: "计费IPv6入方向吉字节数"
     type: octets
   - id: 149
     name: "Acct-IPv6-Output-Gigawords"
-    name_zh: "Acct-IPv6-Output-Gigawords"
+    name_zh: "计费IPv6出方向吉字节数"
     type: octets
   - id: 150
     name: "DHCPv6-Option37"
-    name_zh: "DHCPv6-Option37"
+    name_zh: "DHCPv6选项37"
     type: string
   - id: 151
     name: "DHCPv6-Option38"
-    name_zh: "DHCPv6-Option38"
+    name_zh: "DHCPv6选项38"
     type: string
   - id: 153
     name: "HW-Access-Type"
-    name_zh: "HW-Access-Type"
+    name_zh: "接入类型"
     type: integer
     desc: "设备发送给RADIUS服务器的认证请求和计费请求报文中携带的用户接入类型。包括："
   - id: 154
     name: "DNS-Server-IPv6-address"
-    name_zh: "DNS-Server-IPv6-address"
+    name_zh: "DNS服务器IPv6地址"
     type: ipv6addr
   - id: 155
     name: "HW-URL-Flag"
-    name_zh: "HW-URL-Flag"
+    name_zh: "地址标志"
     type: integer
     desc: "是否需要用户强推URL，比如和属性HW-Portal-URL结合使用。其中："
   - id: 156
     name: "HW-Portal-URL"
-    name_zh: "HW-Portal-URL"
+    name_zh: "Portal地址"
     type: string
     desc: "用户强推URL（Uniform Resource Locator）。最大长度为200字节。"
   - id: 157
     name: "HW-Terminal-Type"
-    name_zh: "HW-Terminal-Type"
+    name_zh: "终端类型"
     type: string
     desc: "用户使用的终端的类型。"
   - id: 158
     name: "HW-DHCP-Option"
-    name_zh: "HW-DHCP-Option"
+    name_zh: "DHCP选项"
     type: string
     desc: "DHCP Option信息，按TLV（Type-Length-Value ）格式封装，一个报文中可以有多个该属性分别携带不同的Option信息。"
   - id: 159
     name: "Acct-Update-Address"
-    name_zh: "Acct-Update-Address"
+    name_zh: "计费更新地址"
     type: octets
   - id: 160
     name: "HW-UCL-Group"
-    name_zh: "HW-UCL-Group"
+    name_zh: "用户级访问控制组"
     type: integer
     desc: "UCL组索引。"
   - id: 161
     name: "HW-Forwarding-VLAN"
-    name_zh: "HW-Forwarding-VLAN"
+    name_zh: "转发VLAN"
     type: string
     desc: "通过该属性下发用户报文转发的ISP（Internet Service Provider） VLAN。"
   - id: 162
     name: "HW-Forwarding-Interface"
-    name_zh: "HW-Forwarding-Interface"
+    name_zh: "转发接口"
     type: string
     desc: "通过该属性下发用户报文转发的出接口。"
   - id: 163
     name: "HW-LLDP"
-    name_zh: "HW-LLDP"
+    name_zh: "LLDP"
     type: string
     desc: "LLDP信息。一个报文中可以有多个该属性分别携带不同的Option。"
   - id: 164
     name: "NAT-Port-Forwarding"
-    name_zh: "NAT-Port-Forwarding"
+    name_zh: "NAT端口转发"
     type: string
   - id: 165
     name: "NAT-Port-Range-Update"
-    name_zh: "NAT-Port-Range-Update"
+    name_zh: "NAT端口范围更新"
     type: octets
   - id: 166
     name: "DS-Lite-Tunnel-Name"
-    name_zh: "DS-Lite-Tunnel-Name"
+    name_zh: "DS-Lite隧道名称"
     type: string
   - id: 167
     name: "PCP-Server-Name"
-    name_zh: "PCP-Server-Name"
+    name_zh: "PCP服务器名称"
     type: string
   - id: 168
     name: "Public-IP-Addr-State"
-    name_zh: "Public-IP-Addr-State"
+    name_zh: "公网IP地址状态"
     type: octets
   - id: 173
     name: "HW-Redirect-ACL"
-    name_zh: "HW-Redirect-ACL"
+    name_zh: "重定向访问控制列表"
     type: string
     desc: "重定向ACL，只对匹配ACL规则的用户做重定向，可下发acl-number或acl-name。其中，acl-name必须以字符开始。"
   - id: 180
     name: "Auth-Type"
-    name_zh: "Auth-Type"
+    name_zh: "认证类型"
     type: octets
   - id: 181
     name: "Acct-Terminate-Subcause"
-    name_zh: "Acct-Terminate-Subcause"
+    name_zh: "计费终止子原因"
     type: octets
   - id: 182
     name: "Down-QOS-Profile-Name"
-    name_zh: "Down-QOS-Profile-Name"
+    name_zh: "下行服务质量模板名"
     type: string
   - id: 183
     name: "Port-Mirror"
-    name_zh: "Port-Mirror"
+    name_zh: "端口镜像"
     type: octets
   - id: 184
     name: "Account-Info"
-    name_zh: "Account-Info"
+    name_zh: "账户信息"
     type: string
   - id: 185
     name: "Service-Info"
-    name_zh: "Service-Info"
+    name_zh: "业务信息"
     type: string
   - id: 187
     name: "DHCP-Option"
-    name_zh: "DHCP-Option"
+    name_zh: "DHCP选项"
     type: octets
   - id: 188
     name: "AVpair"
-    name_zh: "AVpair"
+    name_zh: "属性值对(AVpair)"
     type: string
   - id: 191
     name: "Delegated-IPv6-Prefix-Pool"
-    name_zh: "Delegated-IPv6-Prefix-Pool"
+    name_zh: "委派IPv6前缀池"
     type: string
   - id: 192
     name: "IPv6-Prefix-Lease"
-    name_zh: "IPv6-Prefix-Lease"
+    name_zh: "IPv6前缀租期"
     type: octets
   - id: 193
     name: "IPv6-Address-Lease"
-    name_zh: "IPv6-Address-Lease"
+    name_zh: "IPv6地址租期"
     type: octets
   - id: 194
     name: "IPv6-Policy-Route"
-    name_zh: "IPv6-Policy-Route"
+    name_zh: "IPv6策略路由"
     type: ipv6addr
   - id: 196
     name: "MNG-IPv6"
-    name_zh: "MNG-IPv6"
+    name_zh: "管理IPv6"
     type: octets
   - id: 201
     name: "HW-User-Extend-Info"
-    name_zh: "HW-User-Extend-Info"
+    name_zh: "用户扩展信息"
     type: string
     desc: "用户扩展信息。认证请求报文和计费请求报文中携带该信息，可携带多个。目前定义如下："
   - id: 206
     name: "DPSK-Info"
-    name_zh: "DPSK-Info"
+    name_zh: "动态预共享密钥信息"
     type: string
   - id: 211
     name: "Flow-Info"
-    name_zh: "Flow-Info"
+    name_zh: "流信息"
     type: string
   - id: 212
     name: "Flow-Id"
-    name_zh: "Flow-Id"
+    name_zh: "流标识"
     type: octets
   - id: 214
     name: "DHCP-Server-IP"
-    name_zh: "DHCP-Server-IP"
+    name_zh: "DHCP服务器IP"
     type: ipaddr
   - id: 215
     name: "Application-Type"
-    name_zh: "Application-Type"
+    name_zh: "应用类型"
     type: octets
   - id: 216
     name: "Indication-Flag"
-    name_zh: "Indication-Flag"
+    name_zh: "指示标志"
     type: octets
   - id: 217
     name: "Original_NAS-IP_Address"
-    name_zh: "Original_NAS-IP_Address"
+    name_zh: "原始NAS IP地址"
     type: ipaddr
   - id: 218
     name: "User-Priority"
-    name_zh: "User-Priority"
+    name_zh: "用户优先级"
     type: octets
   - id: 219
     name: "ACS-Url"
-    name_zh: "ACS-Url"
+    name_zh: "ACS地址"
     type: string
   - id: 220
     name: "Provision-Code"
-    name_zh: "Provision-Code"
+    name_zh: "预配置码"
     type: string
   - id: 221
     name: "Application-Scene"
-    name_zh: "Application-Scene"
+    name_zh: "应用场景"
     type: octets
   - id: 222
     name: "MS-Maximum-MAC-Study-Number"
-    name_zh: "MS-Maximum-MAC-Study-Number"
+    name_zh: "MS最大MAC学习数"
     type: octets
   - id: 232
     name: "GGSN-Vendor"
-    name_zh: "GGSN-Vendor"
+    name_zh: "GGSN厂商"
     type: string
   - id: 233
     name: "GGSN-Version"
-    name_zh: "GGSN-Version"
+    name_zh: "GGSN版本"
     type: string
   - id: 237
     name: "HW-Web-Authen-Info"
-    name_zh: "HW-Web-Authen-Info"
+    name_zh: "Web认证信息"
     type: string
     desc: "Portal服务器发给RADIUS服务器的信息，设备直接透传该信息给RADIUS服务器。比如用户选择的下次登录免认证选项和时间信息，RADIUS服务器根据此信息将用户MAC保存一定的时间，下次用户登录时优选MAC认证，无需再次弹出登录页面。后续可用于EAP等复杂方式的透传认证。"
   - id: 238
     name: "HW-Ext-Specific"
-    name_zh: "HW-Ext-Specific"
+    name_zh: "扩展专有"
     type: string
     desc: "用户扩展属性："
   - id: 239
     name: "HW-User-Access-Info"
-    name_zh: "HW-User-Access-Info"
+    name_zh: "用户接入信息"
     type: string
     desc: "用户上下文模板信息。"
   - id: 240
     name: "HW-Access-Device-Info"
-    name_zh: "HW-Access-Device-Info"
+    name_zh: "接入设备信息"
     type: string
     desc: "策略联动时，在认证和计费请求报文中携带接入交换机的IP地址、MAC地址、端口号等，格式为“ip=A.B.C.D;mac=XXXX-XXXX-XXXX;slot=XX;subslot=XXX;port=XXX;vlanid=XXXX”。"
   - id: 244
     name: "HW-Reachable-Detect"
-    name_zh: "HW-Reachable-Detect"
+    name_zh: "可达性探测"
     type: string
     desc: "服务器可达性探测信息，认证报文可携带该属性，表示该报文为服务器探测报文。"
   - id: 247
     name: "HW-Tariff-Input-Octets"
-    name_zh: "HW-Tariff-Input-Octets"
+    name_zh: "资费入方向字节数"
     type: string
     desc: "设备通过计费报文向服务器发送的指定费率级别流量的上行字节数，单位可以为Byte，KByte，MByte或GByte，格式为“费率级别：上行字节数；”。"
   - id: 248
     name: "HW-Tariff-Output-Octets"
-    name_zh: "HW-Tariff-Output-Octets"
+    name_zh: "资费出方向字节数"
     type: string
     desc: "设备通过计费报文向服务器发送的指定费率级别流量的下行字节数，单位可以为Byte，KByte，MByte或GByte，格式为“费率级别：下行字节数；”。"
   - id: 249
     name: "HW-Tariff-Input-Gigawords"
-    name_zh: "HW-Tariff-Input-Gigawords"
+    name_zh: "资费入方向吉字节数"
     type: string
     desc: "指定费率级别流量的上行字节数是4G的多少倍，与HW-Tariff-Input-Octets属性共同决定指定费率级别流量的上行字节数。"
   - id: 250
     name: "HW-Tariff-Output-Gigawords"
-    name_zh: "HW-Tariff-Output-Gigawords"
+    name_zh: "资费出方向吉字节数"
     type: string
     desc: "指定费率级别流量的下行字节数是4G的多少倍，与HW-Tariff-Output-Octets属性共同决定指定费率级别流量的下行字节数。"
   - id: 251
     name: "User-Group-Name"
-    name_zh: "User-Group-Name"
+    name_zh: "用户组名"
     type: string
   - id: 252
     name: "User-Service-Type"
-    name_zh: "User-Service-Type"
+    name_zh: "用户业务类型"
     type: octets
   - id: 253
     name: "HW-Framed-IPv6-Address"
-    name_zh: "HW-Framed-IPv6-Address"
+    name_zh: "帧中继IPv6地址"
     type: ipaddr
     desc: "用户的IPv6地址。"
   - id: 254
     name: "HW-Version"
-    name_zh: "HW-Version"
+    name_zh: "版本"
     type: string
     desc: "设备的软件版本号。"
   - id: 255
     name: "HW-Product-ID"
-    name_zh: "HW-Product-ID"
+    name_zh: "产品标识"
     type: string
     desc: "NAS的产品名称。"

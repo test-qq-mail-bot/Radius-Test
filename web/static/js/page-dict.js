@@ -274,7 +274,7 @@
           return {
             id: item.id,
             name: item.name || '',
-            name_zh: item.name_zh || '',
+            name_zh: global.dictDisplayNameZh(item.name, item.name_zh),
             type: item.type || '',
             desc: item.desc || ''
           };

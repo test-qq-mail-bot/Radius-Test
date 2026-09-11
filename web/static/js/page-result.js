@@ -227,7 +227,7 @@
             tr.id = global.uid(table.id + '-row-' + item.name);
             [
               item.name,
-              item.name_zh,
+              global.dictDisplayNameZh(item.name, item.name_zh),
               item.display,
               item.template,
               item.description || '-'
@@ -294,7 +294,7 @@
             [
               attribute.radius_template,
               attribute.name,
-              attribute.name_zh,
+              global.dictDisplayNameZh(attribute.name, attribute.name_zh),
               attribute.type,
               attribute.value
             ].forEach(function (value, cellIndex) {

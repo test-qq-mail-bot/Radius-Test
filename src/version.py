@@ -21,9 +21,9 @@
 SOFTWARE_NAME = "Radius-Test"
 # 软件版本号（命名规则：变动日期-V序号，如 2026-09-10 第一个版本为 20260910-V1）。
 # 全程序（后端、前端、日志、页面、测试结果）统一使用这一个版本号，不分层维护。
-SOFTWARE_VERSION = "20260910-V3"
+SOFTWARE_VERSION = "20260911-V1"
 # 供 Windows 可执行文件「详细信息」属性页使用的四段版本号 (major, minor, patch, build)，
 # 由打包脚本 build.py 读取；与 SOFTWARE_VERSION 保持一致（build 即 V 序号）。
-SOFTWARE_VERSION_TUPLE = (2026, 9, 10, 3)
+SOFTWARE_VERSION_TUPLE = (2026, 9, 11, 1)
 # 项目定位描述
 SOFTWARE_DESCRIPTION = "RADIUS 认证、在线会话及性能测试工具"

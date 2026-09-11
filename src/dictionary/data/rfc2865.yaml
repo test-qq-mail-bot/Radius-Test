@@ -106,7 +106,7 @@ attributes:
     type: string
   - id: 23
     name: "Framed-IPX-Network"
-    name_zh: "Framed-IPX-Network"
+    name_zh: "IPX网络号"
     type: ipaddr
   - id: 24
     name: "State"
@@ -425,7 +425,7 @@ attributes:
     type: ipv6prefix
   - id: 195
     name: "HW-SecurityStr"
-    name_zh: "HW-SecurityStr"
+    name_zh: "安全字符串(EAP透传)"
     type: string
     desc: "EAP透传认证时用于携带用户的安全信息。"
     packet_support:
@@ -435,25 +435,25 @@ attributes:
       access_challenge: "0"
   - id: 241
     name: "Extended-Attribute-1"
-    name_zh: "Extended-Attribute-1"
+    name_zh: "扩展属性1"
     type: tlv
   - id: 242
     name: "Extended-Attribute-2"
-    name_zh: "Extended-Attribute-2"
+    name_zh: "扩展属性2"
     type: tlv
   - id: 243
     name: "Extended-Attribute-3"
-    name_zh: "Extended-Attribute-3"
+    name_zh: "扩展属性3"
     type: tlv
   - id: 244
     name: "Extended-Attribute-4"
-    name_zh: "Extended-Attribute-4"
+    name_zh: "扩展属性4"
     type: tlv
   - id: 245
     name: "Extended-Attribute-5"
-    name_zh: "Extended-Attribute-5"
+    name_zh: "扩展属性5"
     type: tlv
   - id: 246
     name: "Extended-Attribute-6"
-    name_zh: "Extended-Attribute-6"
+    name_zh: "扩展属性6"
     type: tlv

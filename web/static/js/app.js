@@ -24,6 +24,17 @@
   }
   global.uid = uid;
 
+  /* 中文字段显示回退：内置字典里部分属性的 name_zh 尚未翻译（与英文名相同，
+     或纯英文无汉字）。这类情况直接返回空串，避免「Name」与「Name_ZH」两列
+     显示一模一样的英文，造成"满屏英文"的观感。
+     含中文（含「中文译名（English原名）」双语格式）的才正常展示。 */
+  function dictDisplayNameZh(name, nameZh) {
+    nameZh = nameZh || '';
+    if (!nameZh || nameZh === (name || '')) return '';
+    return /[一-鿿]/.test(nameZh) ? nameZh : '';
+  }
+  global.dictDisplayNameZh = dictDisplayNameZh;
+
   /* 不需要命名的标签：脚本、样式、文档级元信息 */
   var UNNAMED_TAGS = {
     script: 1, style: 1, meta: 1, link: 1, title: 1, head: 1, html: 1, base: 1
