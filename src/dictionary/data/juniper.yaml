@@ -1,0 +1,106 @@
+# Radius-Test 内置 Dictionary
+#
+# 模板：Juniper
+# 来源：FreeRADIUS dictionary.juniper（commit 3cbcd460e523dc6c852ff93a798f47eda8b4cfc9），自动转换
+#
+# 本文件由构建脚本生成，位于源代码内部，随程序一起分发。
+# 用户如需修改，请在 Web 的 Dictionary 页面使用「派生为自定义模板」。
+# name_zh 暂未翻译（默认回退为 name），前端去重后仅显示英文名。
+
+template: Juniper
+vendor: Juniper
+vendor_id: 2636
+attributes:
+- id: 1
+  name: Juniper-Local-User-Name
+  type: string
+- id: 2
+  name: Juniper-Allow-Commands
+  type: string
+- id: 3
+  name: Juniper-Deny-Commands
+  type: string
+- id: 4
+  name: Juniper-Allow-Configuration
+  type: string
+- id: 5
+  name: Juniper-Deny-Configuration
+  type: string
+- id: 8
+  name: Juniper-Interactive-Command
+  type: string
+- id: 9
+  name: Juniper-Configuration-Change
+  type: string
+- id: 10
+  name: Juniper-User-Permissions
+  type: string
+- id: 11
+  name: Juniper-Junosspace-Profile
+  type: string
+- id: 21
+  name: Juniper-CTP-Group
+  type: integer
+- id: 22
+  name: Juniper-CTPView-APP-Group
+  type: integer
+- id: 23
+  name: Juniper-CTPView-OS-Group
+  type: integer
+- id: 31
+  name: Juniper-Primary-Dns
+  type: ipaddr
+- id: 32
+  name: Juniper-Primary-Wins
+  type: ipaddr
+- id: 33
+  name: Juniper-Secondary-Dns
+  type: ipaddr
+- id: 34
+  name: Juniper-Secondary-Wins
+  type: ipaddr
+- id: 35
+  name: Juniper-Interface-id
+  type: string
+- id: 36
+  name: Juniper-Ip-Pool-Name
+  type: string
+- id: 37
+  name: Juniper-Keep-Alive
+  type: integer
+- id: 38
+  name: Juniper-CoS-Traffic-Control-Profile
+  type: string
+- id: 39
+  name: Juniper-CoS-Parameter
+  type: string
+- id: 40
+  name: Juniper-encapsulation-overhead
+  type: integer
+- id: 41
+  name: Juniper-cell-overhead
+  type: integer
+- id: 42
+  name: Juniper-tx-connect-speed
+  type: integer
+- id: 43
+  name: Juniper-rx-connect-speed
+  type: integer
+- id: 44
+  name: Juniper-Firewall-filter-name
+  type: string
+- id: 45
+  name: Juniper-Policer-Parameter
+  type: string
+- id: 46
+  name: Juniper-Local-Group-Name
+  type: string
+- id: 47
+  name: Juniper-Local-Interface
+  type: string
+- id: 48
+  name: Juniper-Switching-Filter
+  type: string
+- id: 49
+  name: Juniper-VoIP-Vlan
+  type: string

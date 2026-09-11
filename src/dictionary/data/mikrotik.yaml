@@ -1,0 +1,79 @@
+# Radius-Test 内置 Dictionary
+#
+# 模板：Mikrotik
+# 来源：FreeRADIUS dictionary.mikrotik（commit 3cbcd460e523dc6c852ff93a798f47eda8b4cfc9），自动转换
+#
+# 本文件由构建脚本生成，位于源代码内部，随程序一起分发。
+# 用户如需修改，请在 Web 的 Dictionary 页面使用「派生为自定义模板」。
+# name_zh 暂未翻译（默认回退为 name），前端去重后仅显示英文名。
+
+template: Mikrotik
+vendor: Mikrotik
+vendor_id: 14988
+attributes:
+- id: 1
+  name: Mikrotik-Recv-Limit
+  type: integer
+- id: 2
+  name: Mikrotik-Xmit-Limit
+  type: integer
+- id: 3
+  name: Mikrotik-Group
+  type: string
+- id: 4
+  name: Mikrotik-Wireless-Forward
+  type: integer
+- id: 5
+  name: Mikrotik-Wireless-Skip-Dot1x
+  type: integer
+- id: 6
+  name: Mikrotik-Wireless-Enc-Algo
+  type: integer
+- id: 7
+  name: Mikrotik-Wireless-Enc-Key
+  type: string
+- id: 8
+  name: Mikrotik-Rate-Limit
+  type: string
+- id: 9
+  name: Mikrotik-Realm
+  type: string
+- id: 10
+  name: Mikrotik-Host-IP
+  type: ipaddr
+- id: 11
+  name: Mikrotik-Mark-Id
+  type: string
+- id: 12
+  name: Mikrotik-Advertise-URL
+  type: string
+- id: 13
+  name: Mikrotik-Advertise-Interval
+  type: integer
+- id: 14
+  name: Mikrotik-Recv-Limit-Gigawords
+  type: integer
+- id: 15
+  name: Mikrotik-Xmit-Limit-Gigawords
+  type: integer
+- id: 16
+  name: Mikrotik-Wireless-PSK
+  type: string
+- id: 17
+  name: Mikrotik-Total-Limit
+  type: integer
+- id: 18
+  name: Mikrotik-Total-Limit-Gigawords
+  type: integer
+- id: 19
+  name: Mikrotik-Address-List
+  type: string
+- id: 20
+  name: Mikrotik-Wireless-MPKey
+  type: string
+- id: 21
+  name: Mikrotik-Wireless-Comment
+  type: string
+- id: 22
+  name: Mikrotik-Delegated-IPv6-Pool
+  type: string

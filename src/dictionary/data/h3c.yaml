@@ -1,0 +1,85 @@
+# Radius-Test 内置 Dictionary
+#
+# 模板：H3C
+# 来源：FreeRADIUS dictionary.h3c（commit 3cbcd460e523dc6c852ff93a798f47eda8b4cfc9），自动转换
+#
+# 本文件由构建脚本生成，位于源代码内部，随程序一起分发。
+# 用户如需修改，请在 Web 的 Dictionary 页面使用「派生为自定义模板」。
+# name_zh 暂未翻译（默认回退为 name），前端去重后仅显示英文名。
+
+template: H3C
+vendor: H3C
+vendor_id: 25506
+attributes:
+- id: 1
+  name: H3C-Input-Peak-Rate
+  type: integer
+- id: 2
+  name: H3C-Input-Average-Rate
+  type: integer
+- id: 3
+  name: H3C-Input-Basic-Rate
+  type: integer
+- id: 15
+  name: H3C-Remanent-Volume
+  type: integer
+- id: 20
+  name: H3C-Command
+  type: integer
+- id: 24
+  name: H3C-Control-Identifier
+  type: integer
+- id: 25
+  name: H3C-Result-Code
+  type: integer
+- id: 26
+  name: H3C-Connect_Id
+  type: integer
+- id: 28
+  name: H3C-Ftp-Directory
+  type: string
+- id: 29
+  name: H3C-Exec-Privilege
+  type: integer
+- id: 59
+  name: H3C-NAS-Startup-Timestamp
+  type: integer
+- id: 60
+  name: H3C-Ip-Host-Addr
+  type: string
+- id: 61
+  name: H3C-User-Notify
+  type: string
+- id: 62
+  name: H3C-User-HeartBeat
+  type: string
+- id: 140
+  name: H3C-User-Group
+  type: string
+- id: 141
+  name: H3C-Security-Level
+  type: integer
+- id: 201
+  name: H3C-Input-Interval-Octets
+  type: integer
+- id: 202
+  name: H3C-Output-Interval-Octets
+  type: integer
+- id: 203
+  name: H3C-Input-Interval-Packets
+  type: integer
+- id: 204
+  name: H3C-Output-Interval-Packets
+  type: integer
+- id: 205
+  name: H3C-Input-Interval-Gigawords
+  type: integer
+- id: 206
+  name: H3C-Output-Interval-Gigawords
+  type: integer
+- id: 207
+  name: H3C-Backup-NAS-IP
+  type: ipaddr
+- id: 255
+  name: H3C-Product-ID
+  type: string

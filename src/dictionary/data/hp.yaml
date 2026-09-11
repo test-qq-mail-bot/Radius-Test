@@ -1,0 +1,67 @@
+# Radius-Test 内置 Dictionary
+#
+# 模板：HP
+# 来源：FreeRADIUS dictionary.hp（commit 3cbcd460e523dc6c852ff93a798f47eda8b4cfc9），自动转换
+#
+# 本文件由构建脚本生成，位于源代码内部，随程序一起分发。
+# 用户如需修改，请在 Web 的 Dictionary 页面使用「派生为自定义模板」。
+# name_zh 暂未翻译（默认回退为 name），前端去重后仅显示英文名。
+
+template: HP
+vendor: HP
+vendor_id: 11
+attributes:
+- id: 1
+  name: HP-Privilege-Level
+  type: integer
+- id: 2
+  name: HP-Command-String
+  type: string
+- id: 3
+  name: HP-Command-Exception
+  type: integer
+- id: 10
+  name: HP-Port-Client-Limit-Dot1x
+  type: integer
+- id: 11
+  name: HP-Port-Client-Limit-MA
+  type: integer
+- id: 12
+  name: HP-Port-Client-Limit-WA
+  type: integer
+- id: 13
+  name: HP-Port-Auth-Mode-Dot1x
+  type: integer
+- id: 26
+  name: HP-Management-Protocol
+  type: integer
+- id: 40
+  name: HP-Cos
+  type: string
+- id: 40
+  name: HP-Port-Priority-Regeneration-Table
+  type: string
+- id: 46
+  name: HP-Bandwidth-Max-Ingress
+  type: integer
+- id: 48
+  name: HP-Bandwidth-Max-Egress
+  type: integer
+- id: 61
+  name: HP-Ip-Filter-Raw
+  type: string
+- id: 61
+  name: HP-Nas-Filter-Rule
+  type: string
+- id: 63
+  name: HP-Nas-Rules-IPv6
+  type: integer
+- id: 64
+  name: HP-Egress-VLANID
+  type: integer
+- id: 65
+  name: HP-Egress-VLAN-Name
+  type: string
+- id: 255
+  name: HP-Capability-Advert
+  type: octets

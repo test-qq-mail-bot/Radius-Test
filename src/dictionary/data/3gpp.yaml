@@ -1,0 +1,94 @@
+# Radius-Test 内置 Dictionary
+#
+# 模板：3GPP
+# 来源：FreeRADIUS dictionary.3gpp（commit 3cbcd460e523dc6c852ff93a798f47eda8b4cfc9），自动转换
+#
+# 本文件由构建脚本生成，位于源代码内部，随程序一起分发。
+# 用户如需修改，请在 Web 的 Dictionary 页面使用「派生为自定义模板」。
+# name_zh 暂未翻译（默认回退为 name），前端去重后仅显示英文名。
+
+template: 3GPP
+vendor: 3GPP
+vendor_id: 10415
+attributes:
+- id: 1
+  name: 3GPP-IMSI
+  type: string
+- id: 2
+  name: 3GPP-Charging-ID
+  type: integer
+- id: 3
+  name: 3GPP-PDP-Type
+  type: integer
+- id: 4
+  name: 3GPP-Charging-Gateway-Address
+  type: ipaddr
+- id: 5
+  name: 3GPP-GPRS-Negotiated-QoS-profile
+  type: string
+- id: 6
+  name: 3GPP-SGSN-Address
+  type: ipaddr
+- id: 7
+  name: 3GPP-GGSN-Address
+  type: ipaddr
+- id: 8
+  name: 3GPP-IMSI-MCC-MNC
+  type: string
+- id: 9
+  name: 3GPP-GGSN-MCC-MNC
+  type: string
+- id: 10
+  name: 3GPP-NSAPI
+  type: string
+- id: 11
+  name: 3GPP-Session-Stop-Indicator
+  type: byte
+- id: 12
+  name: 3GPP-Selection-Mode
+  type: string
+- id: 13
+  name: 3GPP-Charging-Characteristics
+  type: string
+- id: 14
+  name: 3GPP-Charging-Gateway-IPv6-Address
+  type: ipv6addr
+- id: 15
+  name: 3GPP-SGSN-IPv6-Address
+  type: ipv6addr
+- id: 16
+  name: 3GPP-GGSN-IPv6-Address
+  type: ipv6addr
+- id: 17
+  name: 3GPP-IPv6-DNS-Servers
+  type: octets
+- id: 18
+  name: 3GPP-SGSN-MCC-MNC
+  type: string
+- id: 19
+  name: 3GPP-Teardown-Indicator
+  type: byte
+- id: 20
+  name: 3GPP-IMEISV
+  type: string
+- id: 21
+  name: 3GPP-RAT-Type
+  type: byte
+- id: 22
+  name: 3GPP-Location-Info
+  type: octets
+- id: 23
+  name: 3GPP-MS-Time-Zone
+  type: integer
+- id: 24
+  name: 3GPP-Camel-Charging-Info
+  type: octets
+- id: 25
+  name: 3GPP-Packet-Filter
+  type: octets
+- id: 26
+  name: 3GPP-Negotiated-DSCP
+  type: byte
+- id: 27
+  name: 3GPP-Allocate-IP-Type
+  type: byte

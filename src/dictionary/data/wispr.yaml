@@ -1,0 +1,46 @@
+# Radius-Test 内置 Dictionary
+#
+# 模板：WISPr
+# 来源：FreeRADIUS dictionary.wispr（commit 3cbcd460e523dc6c852ff93a798f47eda8b4cfc9），自动转换
+#
+# 本文件由构建脚本生成，位于源代码内部，随程序一起分发。
+# 用户如需修改，请在 Web 的 Dictionary 页面使用「派生为自定义模板」。
+# name_zh 暂未翻译（默认回退为 name），前端去重后仅显示英文名。
+
+template: WISPr
+vendor: WISPr
+vendor_id: 14122
+attributes:
+- id: 1
+  name: WISPr-Location-ID
+  type: string
+- id: 2
+  name: WISPr-Location-Name
+  type: string
+- id: 3
+  name: WISPr-Logoff-URL
+  type: string
+- id: 4
+  name: WISPr-Redirection-URL
+  type: string
+- id: 5
+  name: WISPr-Bandwidth-Min-Up
+  type: integer
+- id: 6
+  name: WISPr-Bandwidth-Min-Down
+  type: integer
+- id: 7
+  name: WISPr-Bandwidth-Max-Up
+  type: integer
+- id: 8
+  name: WISPr-Bandwidth-Max-Down
+  type: integer
+- id: 9
+  name: WISPr-Session-Terminate-Time
+  type: string
+- id: 10
+  name: WISPr-Session-Terminate-End-Of-Day
+  type: string
+- id: 11
+  name: WISPr-Billing-Class-Of-Service
+  type: string
