@@ -1453,6 +1453,18 @@ code,
 }
 
 /* 授权属性分区标题：比详情主标题低一级 */
+.app-detail-module {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: var(--space-section);
+}
+
+.app-detail-module-body {
+  margin-top: 4px;
+}
+
 .app-detail-subtitle {
   font-size: 12px;
   font-weight: 600;

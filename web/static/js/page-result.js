@@ -139,15 +139,29 @@
         var host = document.createElement('div');
         host.id = global.uid('app-result-detail-host');
 
-        var infoTitle = document.createElement('div');
-        infoTitle.className = 'app-detail-title';
-        infoTitle.id = global.uid('app-result-detail-info-title');
-        infoTitle.textContent = '测试信息';
-        host.appendChild(infoTitle);
+        // 创建「模块」容器：外层 div 包裹「模块名 div」+「模块内容 div」，三者均带唯一 id。
+        // 用于把测试信息、各报文内容解析拆分为独立可定位的区块，便于排错与自动化定位。
+        function buildModule(key, titleText) {
+          var outer = document.createElement('div');
+          outer.className = 'app-detail-module';
+          outer.id = 'app-result-detail-' + key;
+          var title = document.createElement('div');
+          title.className = 'app-detail-title';
+          title.id = 'app-result-detail-title-' + key;
+          title.textContent = titleText;
+          var body = document.createElement('div');
+          body.className = 'app-detail-module-body';
+          body.id = 'app-result-detail-wrap-' + key;
+          outer.appendChild(title);
+          outer.appendChild(body);
+          host.appendChild(outer);
+          return body;
+        }
 
+        // 测试信息模块
+        var infoBody = buildModule('info', '测试信息');
         var infoList = document.createElement('div');
         infoList.className = 'app-detail-list';
-        infoList.id = global.uid('app-result-detail-info');
         var session = detail.session || {};
         [
           ['任务 ID', detail.task_id],
@@ -165,7 +179,7 @@
         ].forEach(function (pair, index) {
           var item = document.createElement('div');
           item.className = 'app-detail-item';
-          item.id = global.uid('app-result-detail-info-item-' + index);
+          item.id = 'app-result-detail-info-item-' + index;
           var key = document.createElement('span');
           key.className = 'app-detail-key';
           key.id = item.id + '-key';
@@ -178,73 +192,13 @@
           item.appendChild(value);
           infoList.appendChild(item);
         });
-        host.appendChild(infoList);
+        infoBody.appendChild(infoList);
 
-        // 授权属性：按「隧道/VLAN、QoS 限速、安全组/ACL、会话控制、其它」分区展示，
-        // 数据来自最新响应报文的属性解析结果（含厂商私有属性 VSA）。
-        var authTitle = document.createElement('div');
-        authTitle.className = 'app-detail-title';
-        authTitle.id = global.uid('app-result-authz-title');
-        authTitle.textContent = '授权属性';
-        host.appendChild(authTitle);
+        // 已取消「授权属性」分组展示：所有属性统一在下方「报文内容解析」中按原始报文呈现，
+        // 说明列由后端按属性编号/厂商给出中文释义，避免分组视图与原始报文对不上、不好排错。
 
-        var groups = detail.authorization_groups || [];
-        if (groups.length === 0) {
-          var authEmpty = document.createElement('div');
-          authEmpty.className = 'app-detail-note';
-          authEmpty.id = global.uid('app-result-authz-empty');
-          authEmpty.textContent = '服务端返回的响应报文未携带任何授权属性'
-            + '（未下发 VLAN / QoS 限速 / 安全组 等），请检查接入设备侧的授权规则。';
-          host.appendChild(authEmpty);
-        }
-        groups.forEach(function (group) {
-          var groupTitle = document.createElement('div');
-          groupTitle.className = 'app-detail-subtitle';
-          groupTitle.id = global.uid('app-result-authz-group-' + group.category);
-          groupTitle.textContent = group.category_zh;
-          host.appendChild(groupTitle);
-
-          var wrap = document.createElement('div');
-          wrap.className = 'app-table-wrap';
-          wrap.id = global.uid('app-result-authz-wrap-' + group.category);
-          var table = document.createElement('table');
-          table.className = 'app-table';
-          table.id = global.uid('app-result-authz-table-' + group.category);
-          var thead = document.createElement('thead');
-          var headRow = document.createElement('tr');
-          headRow.id = table.id + '-head-row';
-          ['属性', '中文名称', '取值', '来源', '说明'].forEach(function (text) {
-            var th = document.createElement('th');
-            th.id = global.uid(table.id + '-th-' + text);
-            th.textContent = text;
-            headRow.appendChild(th);
-          });
-          thead.appendChild(headRow);
-          var tbody = document.createElement('tbody');
-          tbody.id = table.id + '-body';
-          group.items.forEach(function (item) {
-            var tr = document.createElement('tr');
-            tr.id = global.uid(table.id + '-row-' + item.name);
-            [
-              item.name,
-              global.dictDisplayNameZh(item.name, item.name_zh),
-              item.display,
-              item.template,
-              item.description || '-'
-            ].forEach(function (value, index) {
-              var td = document.createElement('td');
-              td.id = tr.id + '-cell-' + index;
-              td.textContent = value === undefined || value === null ? '' : String(value);
-              tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
-          });
-          table.appendChild(thead);
-          table.appendChild(tbody);
-          wrap.appendChild(table);
-          host.appendChild(wrap);
-        });
-
+        // 报文内容模块：每个报文单独成块，属性统一在「报文内容解析」表里呈现，
+        // 不再单独划分授权分组（隧道/VLAN、QoS、安全组、会话控制等）。
         var packets = detail.packets || [];
         if (packets.length === 0) {
           var empty = document.createElement('div');
@@ -252,36 +206,36 @@
           empty.textContent = '本次测试未保存 RADIUS 报文（保存报文配置已关闭）';
           host.appendChild(empty);
         }
+        var packetSeq = {};
         packets.forEach(function (packet) {
-          var title = document.createElement('div');
-          title.className = 'app-detail-title';
-          title.id = global.uid('app-result-detail-packet-title-' + String(packet.packet_type || 'packet').replace(/[^A-Za-z0-9_-]/g, '_'));
-          title.textContent = packet.packet_type || '报文';
-          host.appendChild(title);
+          var rawKey = String(packet.packet_type || 'packet').replace(/[^A-Za-z0-9_-]/g, '_');
+          packetSeq[rawKey] = (packetSeq[rawKey] || 0) + 1;
+          var key = rawKey + '-' + packetSeq[rawKey];
+          var body = buildModule(key, packet.packet_type || '报文');
 
           var packetAttributes = packet.attributes || [];
           if (packetAttributes.length === 0) {
             // 服务端确实没有下发任何属性时给出明确说明，避免误判为解析失败
             var emptyNote = document.createElement('div');
             emptyNote.className = 'app-detail-note';
-            emptyNote.id = global.uid('app-result-detail-packet-empty-' + String(packet.packet_type || 'packet').replace(/[^A-Za-z0-9_-]/g, '_'));
+            emptyNote.id = 'app-result-detail-packet-empty-' + key;
             emptyNote.textContent = '该报文本体未携带任何属性（原始报文仅 ' + (packet.raw_packet ? packet.raw_packet.length / 2 : 20) + ' 字节）。';
-            host.appendChild(emptyNote);
+            body.appendChild(emptyNote);
             return;
           }
 
           var attrWrap = document.createElement('div');
           attrWrap.className = 'app-table-wrap';
-          attrWrap.id = global.uid('app-result-detail-wrap-' + String(packet.packet_type || 'packet').replace(/[^A-Za-z0-9_-]/g, '_'));
+          attrWrap.id = 'app-result-detail-packet-wrap-' + key;
           var attrTable = document.createElement('table');
           attrTable.className = 'app-table';
-          attrTable.id = global.uid('app-result-detail-packet-' + String(packet.packet_type || 'packet').replace(/[^A-Za-z0-9_-]/g, '_'));
+          attrTable.id = 'app-result-detail-packet-' + key;
           var thead = document.createElement('thead');
           var headRow = document.createElement('tr');
           headRow.id = attrTable.id + '-head-row';
-          ['Radius模板', 'Name', 'Name_ZH', 'Type', 'Value'].forEach(function (text) {
+          ['Radius模板', 'Name', 'Name_ZH', 'Type', 'Value', '说明'].forEach(function (text) {
             var th = document.createElement('th');
-            th.id = global.uid(attrTable.id + '-th-' + text);
+            th.id = attrTable.id + '-th-' + text;
             th.textContent = text;
             headRow.appendChild(th);
           });
@@ -296,7 +250,8 @@
               attribute.name,
               global.dictDisplayNameZh(attribute.name, attribute.name_zh),
               attribute.type,
-              attribute.value
+              attribute.value,
+              attribute.description || '-'
             ].forEach(function (value, cellIndex) {
               var td = document.createElement('td');
               td.id = tr.id + '-cell-' + cellIndex;
@@ -308,7 +263,7 @@
           attrTable.appendChild(thead);
           attrTable.appendChild(tbody);
           attrWrap.appendChild(attrTable);
-          host.appendChild(attrWrap);
+          body.appendChild(attrWrap);
         });
 
         global.RtUI.modal('测试详情 - ' + detail.username, [], [], host);

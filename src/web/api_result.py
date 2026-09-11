@@ -25,23 +25,24 @@ from ..logging import logger
 router = APIRouter(prefix="/api", tags=["results"])
 
 
-def _attach_authorization(detail: dict) -> dict:
+def _attach_descriptions(detail: dict) -> dict:
     """
-    给详情补充「授权属性」分区数据。
+    给每条报文属性补充「中文说明」字段，供前端说明列展示。
 
     说明：
-        详情只保留该用户最新的请求与响应报文，
-        授权属性取自最新响应报文（Access-Accept）的属性解析结果，
-        并按 隧道/VLAN、QoS 限速、安全组/ACL、会话控制、其它 分类分组。
+        数据库 radius_attributes 表没有 description 列，说明在接口层即时生成，
+        来源为 authz.describe_attribute（标准属性 + 六家厂商私有属性中文释义）。
+        未收录的属性说明为空串，前端显示为 −。
+        不在详情里再单独划分「授权属性」分组，所有属性统一由报文内容解析呈现，
+        避免排错时分组与原始报文对不上。
     """
-    response = None
     for packet in detail.get("packets") or []:
-        if str(packet.get("packet_type") or "").startswith("response-"):
-            response = packet
-            break
-    items = authz.from_rows((response or {}).get("attributes") or [])
-    detail["authorization"] = items
-    detail["authorization_groups"] = authz.group_items(items)
+        for attribute in packet.get("attributes") or []:
+            attribute["description"] = authz.describe_attribute(
+                attribute.get("vendor_id"),
+                attribute.get("attribute_id"),
+                attribute.get("name", ""),
+            )
     return detail
 
 
@@ -144,15 +145,15 @@ async def result_detail(result_id: int):
     """
     查询单条测试结果详情。
 
-    详情结构（项目书 21.1）：
+    详情结构：
         测试信息 -> RADIUS 请求报文 -> RADIUS 响应报文
-        -> 报文解析结果 -> Radius 模板匹配结果
-        -> 授权属性（按 VLAN / QoS / 安全组 / 会话控制 分组）
+        -> 报文内容解析（每个属性含 radius_template / name / name_zh /
+           type / value / description 说明列）
     """
     detail = await _run_in_thread(dao.get_result_detail, result_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="测试结果不存在")
-    return _attach_authorization(detail)
+    return _attach_descriptions(detail)
 
 
 @router.get("/sessions")
