@@ -267,6 +267,10 @@
         });
 
         global.RtUI.modal('测试详情 - ' + detail.username, [], [], host);
+        var detailPanel = document.getElementById('modal-panel');
+        if (detailPanel) {
+          detailPanel.classList.add('is-wide');
+        }
       }
 
       function loadSessions() {

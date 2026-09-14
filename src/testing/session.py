@@ -60,6 +60,8 @@ class TestSession:
             self._client,
             int(self.options.get("interim_interval") or 60),
             int(self.options.get("interim_max_fail") or 3),
+            float(self.options.get("accounting_timeout") or 0.0),
+            int(self.options.get("accounting_retry_count") or 0),
         )
         self.status = state_mod.PENDING
         self.stop_reason = ""
@@ -400,6 +402,14 @@ class TestSession:
         """返回测试会话实时快照。"""
         success_rate = (self.success_count / self.total * 100) if self.total else 0.0
         failed_rate = (self.failed_count / self.total * 100) if self.total else 0.0
+        # 掉线指标（需求3）：掉线率 = 累计掉线用户数 / 当前在线数；
+        # 平均掉线时长 = 累计掉线时长 / 掉线次数
+        online_total = self.online_count
+        dropped_users = self._online.dropped_user_count
+        drop_rate = (dropped_users / online_total * 100) if online_total else 0.0
+        drop_count = self._online.drop_count
+        avg_drop_duration = (self._online.total_drop_duration / drop_count) if drop_count else 0.0
+        current_offline = self._online.current_offline_count
         return {
             "task_id": self.task_id,
             "status": self.status,
@@ -415,6 +425,11 @@ class TestSession:
             "timeout": self.timeout_count,
             "cancelled": self.cancelled_count,
             "online": self.online_count,
+            # 掉线指标（需求3）：随快照一并暴露给前端实时指标
+            "drop_rate": round(drop_rate, 2),
+            "avg_drop_duration": round(avg_drop_duration, 3),
+            "dropped_users": dropped_users,
+            "current_offline": current_offline,
             "success_rate": round(success_rate, 2),
             "failed_rate": round(failed_rate, 2),
             "max_response_time": round(self.max_response_time, 3),

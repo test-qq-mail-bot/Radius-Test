@@ -13,8 +13,9 @@ RADIUS 报文构造模块。
     再通过 signer 回调在 Identifier 确定后完成签名。
 """
 
+import random
 import time
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from ..logging import logger
 from . import attributes as attr_mod
@@ -26,6 +27,7 @@ from .packet import decode_packet, encode_packet
 # RADIUS 标准属性编号
 ATTR_STATE = 24
 ATTR_NAS_PORT = 5
+ATTR_NAS_PORT_TYPE = 61
 ATTR_CALLED_STATION_ID = 30
 ATTR_CALLING_STATION_ID = 31
 ATTR_ACCT_AUTHENTIC = 45
@@ -41,12 +43,28 @@ ACCT_STATUS_TEXT = {
 }
 
 
-def base_attributes(server: dict, username: str) -> List[Tuple[int, bytes]]:
+def _random_mac() -> str:
+    """生成合法随机终端 MAC（XX-XX-XX-XX-XX-XX 格式）。"""
+    return "%02X-%02X-%02X-%02X-%02X-%02X" % tuple(
+        random.randint(0, 255) for _ in range(6))
+
+
+def base_attributes(server: dict, username: str,
+                    dot1x: Optional[dict] = None) -> List[Tuple[int, bytes]]:
     """
     构造请求的基础属性。
 
     包含：User-Name、NAS-IP-Address（配置了才带）、NAS-Port、
-    Called-Station-Id、Calling-Station-Id。
+    Called-Station-Id、Calling-Station-Id，以及 Dot1X 配置时的 NAS-Port-Type。
+
+    dot1x：账号认证测试的可选 Dot1X 接入配置，结构：
+        {
+            "access_type": "wired" | "wireless",
+            "ssid": str,                 # 仅无线用，可空，默认 Radius-Test
+            "nas_port": int | str,       # 可自定义，可空则随机合法整数
+            "calling_station_id": str,   # 终端 MAC，可自定义，可空则随机
+        }
+    为 None 时（性能测试等未配置场景）沿用原硬编码默认值，保持向后兼容。
     """
     result = [(codes.ATTR_USER_NAME, username.encode("utf-8"))]
     nas_ip = str(server.get("nas_ip_address", "")).strip()
@@ -60,9 +78,38 @@ def base_attributes(server: dict, username: str) -> List[Tuple[int, bytes]]:
                 "nas_ip": nas_ip,
                 "error": str(exc),
             })
-    result.append((ATTR_NAS_PORT, (1).to_bytes(4, "big")))
-    result.append((ATTR_CALLED_STATION_ID, b"00-00-00-00-00-00:Radius-Test"))
-    result.append((ATTR_CALLING_STATION_ID, b"02-00-00-00-00-01"))
+
+    # Dot1X 接入配置：仅账号认证测试显式传入；为 None 时维持原硬编码（性能测试兼容）
+    if dot1x:
+        access_type = str(dot1x.get("access_type") or "wired").lower()
+        # NAS-Port(5)：用户自定义或随机合法整数（1~65535）
+        nas_port = dot1x.get("nas_port")
+        if nas_port is None or nas_port == "":
+            nas_port = random.randint(1, 65535)
+        else:
+            nas_port = int(nas_port)
+        result.append((ATTR_NAS_PORT, int(nas_port).to_bytes(4, "big")))
+        # Calling-Station-Id(31) 终端 MAC：用户自定义或随机合法 MAC
+        mac = str(dot1x.get("calling_station_id") or "").strip()
+        if not mac:
+            mac = _random_mac()
+        result.append((ATTR_CALLING_STATION_ID, mac.encode("utf-8")))
+        # NAS-Port-Type(61) 区分接入介质；Called-Station-Id(30) 按接入类型构造
+        if access_type == "wireless":
+            result.append((ATTR_NAS_PORT_TYPE, (19).to_bytes(4, "big")))  # IEEE-802.11
+            ssid = str(dot1x.get("ssid") or "").strip() or "Radius-Test"
+            ap_mac = (str(dot1x.get("ap_mac") or "00-00-00-00-00-00").strip()
+                      or "00-00-00-00-00-00")
+            result.append((ATTR_CALLED_STATION_ID,
+                           ("%s:%s" % (ap_mac, ssid)).encode("utf-8")))
+        else:
+            result.append((ATTR_NAS_PORT_TYPE, (15).to_bytes(4, "big")))  # Ethernet
+            result.append((ATTR_CALLED_STATION_ID, b"00-00-00-00-00-00"))
+    else:
+        # 原硬编码行为（性能测试 / 未配置 Dot1X 时保持兼容）
+        result.append((ATTR_NAS_PORT, (1).to_bytes(4, "big")))
+        result.append((ATTR_CALLED_STATION_ID, b"00-00-00-00-00-00:Radius-Test"))
+        result.append((ATTR_CALLING_STATION_ID, b"02-00-00-00-00-01"))
     return result
 
 

@@ -92,10 +92,11 @@
     testUserAuth: function (name, payload) {
       return this.post('/api/servers/' + encodeURIComponent(name) + '/auth-test', payload);
     },
-    batchAuthTest: function (server, usernames, protocol) {
+    batchAuthTest: function (server, usernames, protocol, dot1x) {
       return this.post('/api/servers/' + encodeURIComponent(server) + '/batch-auth-test', {
         usernames: usernames,
-        protocol: protocol || 'pap'
+        protocol: protocol || 'pap',
+        dot1x: dot1x || null
       });
     },
     listUsers: function () {

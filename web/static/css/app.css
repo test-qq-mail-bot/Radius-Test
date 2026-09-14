@@ -1749,6 +1749,18 @@ code,
   width: min(1200px, 92vw);
 }
 
+/* 加宽弹窗内表格：上下 + 左右滚动，表头吸顶（测试详情等报文展示） */
+#modal-panel.is-wide .app-table-wrap {
+  max-height: 56vh;
+  overflow: auto;
+}
+
+#modal-panel.is-wide .app-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
 /* 属性表：上下 + 左右均可滚动，表头吸顶 */
 .app-dict-attr-host .app-table-wrap {
   max-height: 56vh;

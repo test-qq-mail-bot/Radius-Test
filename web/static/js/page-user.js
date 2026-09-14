@@ -229,7 +229,60 @@
       batchBar.appendChild(batchTestBtn);
       batchBar.appendChild(batchDeleteBtn);
       batchBar.appendChild(exportCsvBtn);
+
+      // ---- Dot1X 接入配置（批量账号认证测试）----
+      var dot1xToggleBtn = global.RtUI.button('Dot1X 设置', '');
+      dot1xToggleBtn.id = 'app-user-batch-dot1x-toggle';
+      batchBar.appendChild(dot1xToggleBtn);
+
+      function dot1xField(labelText, control) {
+        var box = document.createElement('div');
+        box.className = 'app-field';
+        var l = document.createElement('label');
+        l.className = 'app-field-label';
+        l.textContent = labelText;
+        box.appendChild(l);
+        box.appendChild(control);
+        return box;
+      }
+      var dot1xPanel = document.createElement('div');
+      dot1xPanel.className = 'app-form-row app-user-batch-dot1x-panel';
+      dot1xPanel.id = 'app-user-batch-dot1x-panel';
+      dot1xPanel.hidden = true;
+      var dot1xAccessType = document.createElement('select');
+      dot1xAccessType.className = 'app-field-select';
+      dot1xAccessType.id = 'app-user-batch-accesstype';
+      [['wired', '有线'], ['wireless', '无线']].forEach(function (p) {
+        var o = document.createElement('option');
+        o.value = p[0];
+        o.textContent = p[1];
+        dot1xAccessType.appendChild(o);
+      });
+      var dot1xSsid = makeInput('dot1x-ssid', 'SSID（无线，可空）', 'text', 'off');
+      dot1xSsid.id = 'app-user-batch-ssid';
+      var dot1xNasPort = makeInput('dot1x-nas-port', 'NAS-Port（可空）', 'number', 'off');
+      dot1xNasPort.id = 'app-user-batch-nasport';
+      var dot1xMac = makeInput('dot1x-mac', '终端MAC（可空）', 'text', 'off');
+      dot1xMac.id = 'app-user-batch-mac';
+      dot1xPanel.appendChild(dot1xField('接入类型', dot1xAccessType));
+      dot1xPanel.appendChild(dot1xField('SSID（无线）', dot1xSsid));
+      dot1xPanel.appendChild(dot1xField('NAS-Port', dot1xNasPort));
+      dot1xPanel.appendChild(dot1xField('终端MAC', dot1xMac));
+      dot1xToggleBtn.addEventListener('click', function () {
+        dot1xPanel.hidden = !dot1xPanel.hidden;
+      });
+
+      function buildBatchDot1x() {
+        return {
+          access_type: dot1xAccessType.value,
+          ssid: dot1xAccessType.value === 'wireless' ? (dot1xSsid.value.trim() || '') : '',
+          nas_port: dot1xNasPort.value.trim() || '',
+          calling_station_id: dot1xMac.value.trim() || ''
+        };
+      }
+
       listHost.appendChild(batchBar);
+      listHost.appendChild(dot1xPanel);
 
       var tableHost = document.createElement('div');
       tableHost.id = global.uid('app-user-table-host');
@@ -564,10 +617,10 @@
                   return;
                 }
                 global.RtUI.withLoading(test, function () {
-                  return global.RtApi.batchAuthTest(server, [row.username], protoSelect.value)
-                    .then(function (data) {
-                      showBatchTestResult(data.results || []);
-                    });
+                return global.RtApi.batchAuthTest(server, [row.username], protoSelect.value, buildBatchDot1x())
+                  .then(function (data) {
+                    showBatchTestResult(data.results || []);
+                  });
                 }, event);
               });
 
@@ -663,10 +716,10 @@
         }
         var usernames = Array.from(selectedUsernames);
         global.RtUI.withLoading(batchTestBtn, function () {
-          return global.RtApi.batchAuthTest(server, usernames, protoSelect.value)
-            .then(function (data) {
-              showBatchTestResult(data.results || []);
-            });
+        return global.RtApi.batchAuthTest(server, usernames, protoSelect.value, buildBatchDot1x())
+          .then(function (data) {
+            showBatchTestResult(data.results || []);
+          });
         }, event);
       });
 

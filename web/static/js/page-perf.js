@@ -231,6 +231,8 @@
         var d = data || {};
         metricsHost.appendChild(metricNode('测试状态', d.status_text || '空闲', ''));
         metricsHost.appendChild(metricNode('当前在线数', d.online || 0, '个'));
+        metricsHost.appendChild(metricNode('掉线率', d.drop_rate || 0, '%'));
+        metricsHost.appendChild(metricNode('平均掉线时长', d.avg_drop_duration || 0, '秒'));
         metricsHost.appendChild(metricNode('总请求数', d.total || 0, '次'));
         metricsHost.appendChild(metricNode('成功率', d.success_rate || 0, '%'));
         metricsHost.appendChild(metricNode('成功数', d.success || 0, '次'));

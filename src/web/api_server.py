@@ -207,7 +207,8 @@ def _save_packets_enabled() -> bool:
         return False
 
 
-async def _probe(target: dict, username: str, password: str, protocol: str) -> dict:
+async def _probe(target: dict, username: str, password: str, protocol: str,
+              dot1x: Any = None) -> dict:
     """
     对目标 Server 执行一次认证探测，返回统一结果字典。
 
@@ -226,7 +227,8 @@ async def _probe(target: dict, username: str, password: str, protocol: str) -> d
         "error": "",
     }
     try:
-        auth_result = await client.authenticate(target, username, password, protocol)
+        auth_result = await client.authenticate(
+            target, username, password, protocol, dot1x=dot1x)
         result["response_time_ms"] = round(auth_result.response_time_ms, 3)
         if auth_result.response_packet is not None:
             result["connect_result"] = "可达"
@@ -299,12 +301,13 @@ async def auth_test(name: str, payload: Dict[str, Any]):
     username = str(payload.get("username") or "").strip()
     password = str(payload.get("password") or "")
     protocol = str(payload.get("protocol") or target.get("protocol") or "pap")
+    dot1x = payload.get("dot1x")
     if not username:
         raise HTTPException(status_code=400, detail="用户名不能为空")
     logger.debug("api", "开始 Radius 用户认证测试", {
         "name": name, "username": username, "protocol": protocol,
     })
-    result = await _probe(target, username, password, protocol)
+    result = await _probe(target, username, password, protocol, dot1x=dot1x)
     logger.info("api", "Radius 用户认证测试完成", {
         "name": name, "username": username,
         "result": result["radius_result"], "error": result["error"],
@@ -322,6 +325,7 @@ async def batch_auth_test(name: str, payload: Dict[str, Any]):
     if not isinstance(usernames, list) or not usernames:
         raise HTTPException(status_code=400, detail="usernames 不能为空")
     protocol = str(payload.get("protocol") or target.get("protocol") or "pap")
+    dot1x = payload.get("dot1x")
 
     # 读取用户密码（用户列表接口本就返回明文密码）
     passwords = {}
@@ -339,7 +343,7 @@ async def batch_auth_test(name: str, payload: Dict[str, Any]):
             continue
         password = passwords.get(username, "")
         try:
-            result = await _probe(target, username, password, protocol)
+            result = await _probe(target, username, password, protocol, dot1x=dot1x)
             result["username"] = username
             results.append(result)
         except Exception as exc:

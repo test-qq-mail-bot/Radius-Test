@@ -108,9 +108,9 @@ class RadiusClient:
         eff["shared_secret"] = server.get("accounting_secret") or server.get("shared_secret") or ""
         return eff
 
-    def _base_attributes(self, server: dict, username: str) -> list:
+    def _base_attributes(self, server: dict, username: str, dot1x=None) -> list:
         """构造认证请求的基础属性（实现见 radius.builder）。"""
-        return builder.base_attributes(server, username)
+        return builder.base_attributes(server, username, dot1x)
 
     def _build_packet(self, code: int, request_authenticator: bytes,
                       attributes: list, secret: bytes) -> bytes:
@@ -137,7 +137,8 @@ class RadiusClient:
     # ---------------- 认证 ----------------
 
     async def authenticate(self, server: dict, username: str, password: str,
-                           protocol: str, peer_challenge_bytes: int = 8) -> RadiusResult:
+                           protocol: str, peer_challenge_bytes: int = 8,
+                           dot1x=None) -> RadiusResult:
         """
         执行一次完整认证。
 
@@ -161,7 +162,7 @@ class RadiusClient:
         effective = self._auth_effective(server)
         request_auth = auth_mod.new_request_authenticator()
         secret = self._secret(effective)
-        attributes = self._base_attributes(effective, username)
+        attributes = self._base_attributes(effective, username, dot1x)
 
         if protocol == "pap":
             attributes.append((codes.ATTR_USER_PASSWORD,

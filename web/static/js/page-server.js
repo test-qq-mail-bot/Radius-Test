@@ -373,10 +373,17 @@
             return;
           }
           global.RtUI.withLoading(testBtn, function () {
+            var dot1x = {
+              access_type: accessTypeSelect.value,
+              ssid: accessTypeSelect.value === 'wireless' ? (ssidInput.value.trim() || '') : '',
+              nas_port: nasPortInput.value.trim() || '',
+              calling_station_id: macInput.value.trim() || ''
+            };
             return global.RtApi.testUserAuth(server.name, {
               username: user,
               password: pass,
-              protocol: protocol
+              protocol: protocol,
+              dot1x: dot1x
             }).then(function (r) {
               resultBox.innerHTML = '';
               var radiusText = String(r.radius_result || '-');
