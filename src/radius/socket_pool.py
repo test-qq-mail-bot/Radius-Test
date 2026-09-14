@@ -166,6 +166,23 @@ class SocketSlot:
         else:
             self.transport.sendto(data, (host, port))
 
+    def local_address(self) -> str:
+        """
+        返回本槽位实际使用的本地地址（IP:端口）。
+
+        用途：排查强制下线时，服务端会把 Disconnect-Request 发往 NAS 地址，
+        而 NAS 地址通常取自报文的源地址，因此日志里需要能看出本机对外呈现的地址。
+        """
+        if self.transport is None:
+            return ""
+        try:
+            sockname = self.transport.get_extra_info("sockname")
+        except Exception:  # noqa: BLE001
+            return ""
+        if not sockname:
+            return ""
+        return "%s:%s" % (sockname[0], sockname[1])
+
     def register(self, identifier: int) -> asyncio.Future:
         """登记等待中的请求。"""
         loop = asyncio.get_event_loop()
@@ -323,6 +340,7 @@ class UdpSocketPool:
                         payload=payload, response=response,
                         elapsed_ms=(time.perf_counter() - started) * 1000,
                         attempt=attempt, retry_count=retry_count, slot=slot.index,
+                        local_address=slot.local_address(),
                     )
                     return response
                 except asyncio.TimeoutError:
@@ -331,6 +349,7 @@ class UdpSocketPool:
                         module="radius", host=host, port=port, identifier=identifier,
                         payload=payload, elapsed_ms=(time.perf_counter() - started) * 1000,
                         attempt=attempt, retry_count=retry_count, slot=slot.index,
+                        local_address=slot.local_address(),
                     )
                     if future.done():
                         break

@@ -36,6 +36,28 @@ ATTR_ACCT_OUTPUT_OCTETS = 43
 ATTR_ACCT_SESSION_TIME = 46
 ATTR_ACCT_INPUT_PACKETS = 47
 ATTR_ACCT_OUTPUT_PACKETS = 48
+# 常用可配置属性（Dot1X 接入场景）
+ATTR_SERVICE_TYPE = 6
+ATTR_FRAMED_IP_ADDRESS = 8
+ATTR_NAS_IDENTIFIER = 32
+ATTR_CONNECT_INFO = 77
+ATTR_NAS_PORT_ID = 87
+
+# Service-Type(6) 常用取值：供前端下拉展示与文本容错解析。
+# 说明：NAS-Port(5) 是「端口号（数值）」，NAS-Port-Id(87) 是「端口名称（字符串）」，
+# 二者语义完全不同，不可混用。
+SERVICE_TYPES = {
+    "login": 1,
+    "framed": 2,
+    "callback-login": 3,
+    "callback-framed": 4,
+    "outbound": 5,
+    "administrative": 6,
+    "nas-prompt": 7,
+    "authenticate-only": 8,
+    "callback-nas-prompt": 9,
+    "call-check": 10,
+}
 
 # 计费状态类型中文名，供日志阅读
 ACCT_STATUS_TEXT = {
@@ -49,6 +71,58 @@ def _random_mac() -> str:
         random.randint(0, 255) for _ in range(6))
 
 
+def _service_type_value(raw) -> Optional[int]:
+    """
+    解析 Service-Type(6) 取值。
+
+    支持数字（1~15）与文本键（见 SERVICE_TYPES）；
+    非法值返回 None，表示不发送该属性。
+    """
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return None
+    if isinstance(raw, int):
+        value = raw
+    else:
+        text = str(raw).strip()
+        if text.isdigit():
+            value = int(text)
+        else:
+            return SERVICE_TYPES.get(text.lower())
+    return value if 1 <= value <= 15 else None
+
+
+def _append_common_attributes(result: List[Tuple[int, bytes]], dot1x: dict) -> None:
+    """
+    追加常用可配置属性。
+
+    含 NAS-Identifier(32)、Service-Type(6)、Framed-IP-Address(8)、Connect-Info(77)；
+    全部遵循「留空即不发送」，避免未填写时改变报文内容。
+    """
+    nas_identifier = str(dot1x.get("nas_identifier") or "").strip()
+    if nas_identifier:
+        result.append((ATTR_NAS_IDENTIFIER, nas_identifier.encode("utf-8")))
+
+    service_type = _service_type_value(dot1x.get("service_type"))
+    if service_type is not None:
+        result.append((ATTR_SERVICE_TYPE, service_type.to_bytes(4, "big")))
+
+    framed_ip = str(dot1x.get("framed_ip_address") or "").strip()
+    if framed_ip:
+        try:
+            result.append((ATTR_FRAMED_IP_ADDRESS,
+                           codes.encode_value(codes.TYPE_IPADDR, framed_ip)))
+        except Exception as exc:
+            # 地址非法时记录告警并跳过，而不是让整个测试报错
+            logger.warning("radius", "Framed-IP-Address 编码失败，已跳过该属性", {
+                "framed_ip_address": framed_ip,
+                "error": str(exc),
+            })
+
+    connect_info = str(dot1x.get("connect_info") or "").strip()
+    if connect_info:
+        result.append((ATTR_CONNECT_INFO, connect_info.encode("utf-8")))
+
+
 def base_attributes(server: dict, username: str,
                     dot1x: Optional[dict] = None) -> List[Tuple[int, bytes]]:
     """
@@ -57,14 +131,21 @@ def base_attributes(server: dict, username: str,
     包含：User-Name、NAS-IP-Address（配置了才带）、NAS-Port、
     Called-Station-Id、Calling-Station-Id，以及 Dot1X 配置时的 NAS-Port-Type。
 
-    dot1x：账号认证测试的可选 Dot1X 接入配置，结构：
+    dot1x：可选的 Dot1X 接入配置（账号认证测试与性能测试共用），结构：
         {
             "access_type": "wired" | "wireless",
             "ssid": str,                 # 仅无线用，可空，默认 Radius-Test
-            "nas_port": int | str,       # 可自定义，可空则随机合法整数
-            "calling_station_id": str,   # 终端 MAC，可自定义，可空则随机
+            "ap_mac": str,               # 仅无线用，Called-Station-Id 前缀，默认全 0
+            "nas_port": int | str,       # NAS-Port(5) 端口号（数值）
+            "nas_port_id": str,          # NAS-Port-Id(87) 端口名称（字符串）
+            "calling_station_id": str,   # 终端 MAC，可空则随机
+            "nas_identifier": str,       # NAS-Identifier(32)，可空则不发送
+            "service_type": int | str,   # Service-Type(6)，可空则不发送
+            "framed_ip_address": str,    # Framed-IP-Address(8)，可空则不发送
+            "connect_info": str,         # Connect-Info(77)，可空则不发送
         }
-    为 None 时（性能测试等未配置场景）沿用原硬编码默认值，保持向后兼容。
+    除 NAS-Port(5) 与终端 MAC 外，其余可选字段留空一律「不发送该属性」，
+    以保持与未配置时一致的行为；为 None 时沿用原硬编码默认值。
     """
     result = [(codes.ATTR_USER_NAME, username.encode("utf-8"))]
     nas_ip = str(server.get("nas_ip_address", "")).strip()
@@ -79,7 +160,7 @@ def base_attributes(server: dict, username: str,
                 "error": str(exc),
             })
 
-    # Dot1X 接入配置：仅账号认证测试显式传入；为 None 时维持原硬编码（性能测试兼容）
+    # Dot1X 接入配置：账号认证测试与性能测试均可传入；为 None 时维持原硬编码
     if dot1x:
         access_type = str(dot1x.get("access_type") or "wired").lower()
         # NAS-Port(5)：用户自定义或随机合法整数（1~65535）
@@ -94,6 +175,10 @@ def base_attributes(server: dict, username: str,
         if not mac:
             mac = _random_mac()
         result.append((ATTR_CALLING_STATION_ID, mac.encode("utf-8")))
+        # NAS-Port-Id(87) 端口名称：字符串，与 NAS-Port(5) 完全不同，留空则不发送
+        nas_port_id = str(dot1x.get("nas_port_id") or "").strip()
+        if nas_port_id:
+            result.append((ATTR_NAS_PORT_ID, nas_port_id.encode("utf-8")))
         # NAS-Port-Type(61) 区分接入介质；Called-Station-Id(30) 按接入类型构造
         if access_type == "wireless":
             result.append((ATTR_NAS_PORT_TYPE, (19).to_bytes(4, "big")))  # IEEE-802.11
@@ -105,6 +190,7 @@ def base_attributes(server: dict, username: str,
         else:
             result.append((ATTR_NAS_PORT_TYPE, (15).to_bytes(4, "big")))  # Ethernet
             result.append((ATTR_CALLED_STATION_ID, b"00-00-00-00-00-00"))
+        _append_common_attributes(result, dot1x)
     else:
         # 原硬编码行为（性能测试 / 未配置 Dot1X 时保持兼容）
         result.append((ATTR_NAS_PORT, (1).to_bytes(4, "big")))

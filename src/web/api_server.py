@@ -11,13 +11,26 @@ RADIUS Server 管理接口模块。
     POST   /api/servers/{name}/auth-test        Radius 用户认证测试（单个账号）
     POST   /api/servers/{name}/batch-auth-test  Radius 用户认证测试（批量账号）
 
-认证测试请求体（auth-test / batch-auth-test）可带可选字段 dot1x，用于指定
-Dot1X 接入配置；不传时沿用 V5 之前的硬编码属性（`NAS-Port=1`、
-`Called-Station-Id=00-00-00-00-00-00:Radius-Test`、`Calling-Station-Id=02-00-00-00-00-01`）：
+认证测试请求体（auth-test / batch-auth-test）与性能测试请求体（POST /api/tasks）
+均可带可选字段 dot1x，用于指定 Dot1X 接入与常用 RADIUS 参数；不传时沿用硬编码属性
+（`NAS-Port=1`、`Called-Station-Id=00-00-00-00-00-00:Radius-Test`、
+`Calling-Station-Id=02-00-00-00-00-01`）：
+
     {"access_type": "wired" | "wireless",        # 默认 wired（NAS-Port-Type 15 / 19）
      "ssid": "SSID",                             # 仅 wireless 生效，留空取 Radius-Test
-     "nas_port": 2002,                           # 留空则每个用户各自随机（1~65535）
-     "calling_station_id": "AA-BB-CC-DD-EE-FF"}  # 终端 MAC，留空则每个用户各自随机
+     "nas_port": "2002",                         # NAS-Port(5) 端口号；留空则随机或按用户序号分配
+     "nas_port_id": "GigabitEthernet0/0/1",      # NAS-Port-Id(87) 端口名称（字符串）
+     "calling_station_id": "AA-BB-CC-DD-EE-FF",  # Calling-Station-Id(31) 终端 MAC；留空则随机
+     "nas_identifier": "NAS-01",                 # NAS-Identifier(32)
+     "service_type": "2",                        # Service-Type(6)，取值 1~15 或文本键
+     "framed_ip_address": "10.1.2.3",            # Framed-IP-Address(8)
+     "connect_info": "CONNECT 100000000"}        # Connect-Info(77)
+
+注意：
+    `NAS-Port(5)` 是端口号（数值），`NAS-Port-Id(87)` 是端口名称（字符串），二者语义不同；
+    除 NAS-Port 与终端 MAC（留空自动生成）外，其余字段留空即「不发送该属性」；
+    性能测试的 dot1x 同时作用于认证报文与计费报文（含 Interim-Update / Stop），
+    保证服务端看到的接入属性前后一致。
 
 字段名称固定使用（项目书 12）：
     authentication_port / accounting_port / nas_ip_address

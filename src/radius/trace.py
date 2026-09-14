@@ -134,12 +134,18 @@ def raw_text(payload: bytes) -> str:
 
 def record_send(module: str, host: str, port: int, identifier: int, payload: bytes,
                 response: bytes, elapsed_ms: float, attempt: int,
-                retry_count: int, slot: int = 0) -> None:
-    """记录一次成功收发。"""
+                retry_count: int, slot: int = 0, local_address: str = "") -> None:
+    """
+    记录一次成功收发。
+
+    local_address：本机实际使用的源地址（IP:端口）。服务端通常以报文源地址
+    作为 NAS 地址来决定 Disconnect-Request 的投递目标，排查强制下线时需要它。
+    """
     if not logger.is_debug_enabled() or not allow():
         return
     logger.debug(module, "RADIUS 收发成功", {
         "target": "%s:%s" % (host, port),
+        "local": local_address or "-",
         "slot": slot,
         "identifier": identifier,
         "attempt": "%d/%d" % (attempt, retry_count),
@@ -153,12 +159,13 @@ def record_send(module: str, host: str, port: int, identifier: int, payload: byt
 
 def record_timeout(module: str, host: str, port: int, identifier: int, payload: bytes,
                    elapsed_ms: float, attempt: int, retry_count: int,
-                   slot: int = 0) -> None:
+                   slot: int = 0, local_address: str = "") -> None:
     """记录一次超时尝试。"""
     if not logger.is_debug_enabled() or not allow():
         return
     logger.debug(module, "RADIUS 收发超时", {
         "target": "%s:%s" % (host, port),
+        "local": local_address or "-",
         "slot": slot,
         "identifier": identifier,
         "attempt": "%d/%d" % (attempt, retry_count),

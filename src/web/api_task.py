@@ -13,7 +13,7 @@
     停止按钮触发后立即取消全部在途任务。
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
 
@@ -50,6 +50,50 @@ def _resolve_users(usernames: List[str]) -> List[tuple]:
     return result
 
 
+def _normalize_dot1x(raw) -> Optional[dict]:
+    """
+    规范化前端传入的 Dot1X 接入配置。
+
+    返回 None 表示未配置（沿用报文构造的原硬编码属性）。
+    NAS-Port 与 Service-Type 做前置校验，避免运行期解析抛错。
+
+    字段：
+        access_type: wired / wireless
+        ssid: 仅无线使用，留空由报文构造置为 Radius-Test
+        nas_port: NAS-Port(5) 端口号，数值，留空则每用户随机或按序号分配
+        nas_port_id: NAS-Port-Id(87) 端口名称，字符串
+        calling_station_id: 终端 MAC
+        nas_identifier / service_type / framed_ip_address / connect_info: 常用参数
+    """
+    if not isinstance(raw, dict):
+        return None
+    access_type = str(raw.get("access_type") or "wired").lower()
+    if access_type not in ("wired", "wireless"):
+        access_type = "wired"
+
+    nas_port = str(raw.get("nas_port") or "").strip()
+    if nas_port and (not nas_port.isdigit() or not 1 <= int(nas_port) <= 65535):
+        raise HTTPException(status_code=400, detail="NAS-Port 需为 1~65535 的整数")
+
+    service_type = str(raw.get("service_type") or "").strip()
+    if service_type and not service_type.isdigit():
+        from ..radius import builder as radius_builder
+        if service_type.lower() not in radius_builder.SERVICE_TYPES:
+            raise HTTPException(status_code=400, detail="Service-Type 取值非法")
+
+    return {
+        "access_type": access_type,
+        "ssid": str(raw.get("ssid") or "").strip(),
+        "nas_port": nas_port,
+        "nas_port_id": str(raw.get("nas_port_id") or "").strip(),
+        "calling_station_id": str(raw.get("calling_station_id") or "").strip(),
+        "nas_identifier": str(raw.get("nas_identifier") or "").strip(),
+        "service_type": service_type,
+        "framed_ip_address": str(raw.get("framed_ip_address") or "").strip(),
+        "connect_info": str(raw.get("connect_info") or "").strip(),
+    }
+
+
 @router.get("/current")
 async def current_task():
     """返回当前测试会话快照。"""
@@ -72,8 +116,24 @@ async def start_task(payload: Dict[str, Any]):
           "rate": 10,
           "concurrency": 10000,
           "save_packets": false,
-          "enable_accounting": true
+          "enable_accounting": true,
+          "dot1x": {
+              "access_type": "wired",
+              "ssid": "",
+              "nas_port": "",
+              "nas_port_id": "",
+              "calling_station_id": "",
+              "nas_identifier": "",
+              "service_type": "",
+              "framed_ip_address": "",
+              "connect_info": ""
+          }
         }
+
+    说明：
+        dot1x 可选；未提供时沿用报文构造的原硬编码属性。
+        提供后同时作用于认证报文与计费报文（含 Interim-Update / Stop），
+        使服务端看到的接入属性前后一致。
     """
     existing = runtime.get_session()
     if existing is not None and existing.running:
@@ -127,6 +187,8 @@ async def start_task(payload: Dict[str, Any]):
         "accounting_message_authenticator": bool(
             config["test"].get("accounting_message_authenticator")),
         "packet_trace_limit": int(config.get("log", {}).get("packet_trace_limit") or 0),
+        # 可选：Dot1X 接入配置，同时作用于认证与计费报文
+        "dot1x": _normalize_dot1x(payload.get("dot1x")),
     }
     if options["online_criteria"] not in ("accounting", "auth"):
         raise HTTPException(status_code=400, detail="在线判定依据非法，可选 accounting / auth")

@@ -28,6 +28,7 @@ from ..performance.limiter import RateLimiter
 from ..performance.pool import ConcurrencyController
 from ..radius import trace
 from ..radius.client import RadiusClient
+from . import snapshot as snapshot_mod
 from . import state as state_mod
 from . import task as task_mod
 
@@ -224,6 +225,11 @@ class TestSession:
         acct_timeout = float(self.options.get("accounting_timeout") or 0.0)
         acct_retry = int(self.options.get("accounting_retry_count") or 0)
         acct_ma = bool(self.options.get("accounting_message_authenticator"))
+        # 性能测试的 Dot1X 接入配置：全用户共用一份模板；
+        # NAS-Port 留空时按用户在列表中的序号唯一分配（1000 起），
+        # 避免 1~65535 随机取值碰撞导致服务端把不同会话串成一条。
+        dot1x_template = self.options.get("dot1x") or None
+        user_index = {name: i for i, (name, _pwd) in enumerate(users)}
         index = 0
         push_deadline = time.monotonic()
         try:
@@ -260,7 +266,8 @@ class TestSession:
                 user_task = asyncio.create_task(
                     self._execute(server, username, password, save_packets,
                                   enable_accounting, peer_challenge_bytes,
-                                  online_criteria, acct_timeout, acct_retry, acct_ma)
+                                  online_criteria, acct_timeout, acct_retry, acct_ma,
+                                  self._user_dot1x(dot1x_template, user_index.get(username)))
                 )
                 self._tasks.append(user_task)
                 self._pending[username] = self._pending.get(username, 0) + 1
@@ -281,15 +288,36 @@ class TestSession:
             logger.error("testing", "测试主循环异常", {"error": str(exc)}, exc_info=True)
             await self.stop(state_mod.SYSTEM_ERROR)
 
+    @staticmethod
+    def _user_dot1x(template: Optional[dict], index: Optional[int]) -> Optional[dict]:
+        """
+        为单个用户生成 Dot1X 接入配置。
+
+        - 未配置 Dot1X 时返回 None，沿用报文构造的原硬编码属性；
+        - NAS-Port 留空时按序号唯一分配（1000 起，封顶 65535），
+          其余字段在全部用户间保持一致；
+        - 用户填写了 NAS-Port 时按填写值使用。
+        """
+        if not template:
+            return None
+        config = dict(template)
+        if not str(config.get("nas_port") or "").strip() and index is not None:
+            config["nas_port"] = min(1000 + int(index), 65535)
+        return config
+
     async def _execute(self, server: dict, username: str, password: str,
                        save_packets: bool, enable_accounting: bool,
                        peer_challenge_bytes: int,
                        online_criteria: str = "accounting",
                        accounting_timeout: float = 0.0,
                        accounting_retry_count: int = 0,
-                       accounting_message_authenticator: bool = False):
+                       accounting_message_authenticator: bool = False,
+                       dot1x: Optional[dict] = None):
         """
         执行单个用户任务，释放并发额度。
+
+        参数：
+            dot1x: 该用户的 Dot1X 接入配置，同时作用于认证与计费报文。
 
         返回：
             TaskOutcome 对象，供统计回调累计指标。
@@ -300,7 +328,7 @@ class TestSession:
                 self.task_id, save_packets, self._online,
                 enable_accounting, peer_challenge_bytes, online_criteria,
                 accounting_timeout, accounting_retry_count,
-                accounting_message_authenticator,
+                accounting_message_authenticator, dot1x,
             )
         except asyncio.CancelledError:
             raise
@@ -398,42 +426,18 @@ class TestSession:
 
     # ---------------- 对外数据 ----------------
 
+    async def mark_forced_offline(self, session_id: str = "", username: str = ""):
+        """
+        处理服务端下发的强制下线通知（Disconnect-Request，需求4）。
+
+        匹配到在线会话时立即判定掉线并推送一次快照，前端「掉线率」「平均掉线时长」
+        随即更新；未匹配到返回 None（由调用方记录服务端下发的属性便于比对）。
+        """
+        target = await self._online.mark_forced_offline(session_id, username)
+        if target is not None:
+            await self._push()
+        return target
+
     def snapshot(self) -> dict:
-        """返回测试会话实时快照。"""
-        success_rate = (self.success_count / self.total * 100) if self.total else 0.0
-        failed_rate = (self.failed_count / self.total * 100) if self.total else 0.0
-        # 掉线指标（需求3）：掉线率 = 累计掉线用户数 / 当前在线数；
-        # 平均掉线时长 = 累计掉线时长 / 掉线次数
-        online_total = self.online_count
-        dropped_users = self._online.dropped_user_count
-        drop_rate = (dropped_users / online_total * 100) if online_total else 0.0
-        drop_count = self._online.drop_count
-        avg_drop_duration = (self._online.total_drop_duration / drop_count) if drop_count else 0.0
-        current_offline = self._online.current_offline_count
-        return {
-            "task_id": self.task_id,
-            "status": self.status,
-            "status_text": state_mod.state_text(self.status),
-            "stop_reason": self.stop_reason,
-            "stop_reason_text": state_mod.stop_reason_text(self.stop_reason),
-            "server": self.server_name,
-            "protocol": self.protocol,
-            "elapsed_seconds": self.elapsed_seconds,
-            "total": self.total,
-            "success": self.success_count,
-            "failed": self.failed_count,
-            "timeout": self.timeout_count,
-            "cancelled": self.cancelled_count,
-            "online": self.online_count,
-            # 掉线指标（需求3）：随快照一并暴露给前端实时指标
-            "drop_rate": round(drop_rate, 2),
-            "avg_drop_duration": round(avg_drop_duration, 3),
-            "dropped_users": dropped_users,
-            "current_offline": current_offline,
-            "success_rate": round(success_rate, 2),
-            "failed_rate": round(failed_rate, 2),
-            "max_response_time": round(self.max_response_time, 3),
-            "min_response_time": round(self.min_response_time, 3),
-            "concurrency": self._controller.snapshot(),
-            "rate": self._limiter.snapshot(),
-        }
+        """返回测试会话实时快照（组装逻辑见 testing/snapshot.py）。"""
+        return snapshot_mod.build(self)

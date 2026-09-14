@@ -158,6 +158,18 @@
       row3.appendChild(acctBox);
       form.appendChild(row3);
 
+      // Dot1X 接入配置：同时作用于认证报文与计费报文（Start / Interim-Update / Stop）
+      var dot1xPanel = global.RtDot1x.createPanel('app-perf-dot1x');
+      var dot1xBox = document.createElement('div');
+      dot1xBox.className = 'app-field';
+      dot1xBox.id = global.uid('app-perf-dot1x-box');
+      var dot1xLabel = document.createElement('label');
+      dot1xLabel.className = 'app-field-label';
+      dot1xLabel.textContent = 'Dot1X 接入配置（同时作用于认证与计费报文）';
+      dot1xBox.appendChild(dot1xLabel);
+      dot1xBox.appendChild(dot1xPanel.element);
+      form.appendChild(dot1xBox);
+
       var userBox = document.createElement('div');
       userBox.className = 'app-field';
       userBox.id = global.uid('app-perf-user-box');
@@ -276,13 +288,17 @@
           concurrency: parseInt(controls.concurrency.value, 10) || 10000,
           save_packets: controls.savePackets.checked,
           enable_accounting: controls.accounting.checked,
-          online_criteria: controls.onlineCriteria.value
+          online_criteria: controls.onlineCriteria.value,
+          dot1x: global.RtDot1x.build(dot1xPanel.fields)
         };
         if (!payload.server_name) {
           global.RtUI.toast('请先选择 RADIUS Server', 'warning');
           return;
         }
         var userText = users.length === 0 ? '全部用户' : (users.join('、') || '');
+        var d = payload.dot1x || {};
+        var accessText = d.access_type === 'wireless'
+          ? ('无线 / SSID ' + (d.ssid || 'Radius-Test')) : '有线';
         global.RtUI.confirm('确认开始测试', '', [
           ['目标 RADIUS Server', payload.server_name],
           ['测试用户', userText],
@@ -291,8 +307,16 @@
           ['测试协议', payload.protocol],
           ['保存报文', payload.save_packets ? '是' : '否'],
           ['启用计费', payload.enable_accounting ? '是' : '否'],
-          ['在线判定依据', payload.online_criteria === 'auth' ? '认证成功' : '计费上线成功']
-        ]).then(function (confirmed) {
+          ['在线判定依据', payload.online_criteria === 'auth' ? '认证成功' : '计费上线成功'],
+          ['Dot1X 接入类型', accessText],
+          ['NAS-Port（端口号）', d.nas_port || '按用户序号唯一分配'],
+          ['NAS-Port-Id（端口名称）', d.nas_port_id || '不发送'],
+          ['终端 MAC', d.calling_station_id || '每个用户随机'],
+          ['NAS-Identifier', d.nas_identifier || '不发送'],
+          ['Service-Type', d.service_type || '不发送'],
+          ['Framed-IP-Address', d.framed_ip_address || '不发送'],
+          ['Connect-Info', d.connect_info || '不发送']
+        ], { width: 'medium' }).then(function (confirmed) {
           if (!confirmed) {
             return null;
           }

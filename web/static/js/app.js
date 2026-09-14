@@ -34,33 +34,159 @@
        - NAS PORT ID 与终端 MAC 留空时由后端按「每个用户各自随机」生成合法值，
          填写则全部被测用户共用该固定值。 */
   var Dot1x = {
-    /* 构造传给后端的 dot1x 参数。留空字段传空串，交后端按用户随机生成。 */
-    build: function (accessType, ssid, nasPort, mac) {
-      var wireless = String(accessType || 'wired').toLowerCase() === 'wireless';
+    /* 构造传给后端的 dot1x 参数。
+       入参为 createPanel() 返回的字段对象；留空字段传空串，
+       交后端按用户随机生成（NAS-Port / 终端 MAC）或直接不发送（其余可选项）。 */
+    build: function (fields) {
+      fields = fields || {};
+      function val(key) {
+        var node = fields[key];
+        return node ? String(node.value || '').trim() : '';
+      }
+      var wireless = val('accessType').toLowerCase() === 'wireless';
       return {
         access_type: wireless ? 'wireless' : 'wired',
-        ssid: wireless ? String(ssid || '').trim() : '',
-        nas_port: String(nasPort || '').trim(),
-        calling_station_id: String(mac || '').trim()
+        ssid: wireless ? val('ssid') : '',
+        nas_port: val('nasPort'),
+        nas_port_id: val('nasPortId'),
+        calling_station_id: val('mac'),
+        nas_identifier: val('nasIdentifier'),
+        service_type: val('serviceType'),
+        framed_ip_address: val('framedIp'),
+        connect_info: val('connectInfo')
       };
     },
     /* 接入类型下拉选项：[值, 显示文本]。 */
     accessOptions: function () {
       return [['wired', '有线'], ['wireless', '无线']];
     },
-    /* 创建接入类型下拉（默认有线）。调用方自行决定 id 与样式。 */
-    createAccessSelect: function (id) {
+    /* Service-Type(6) 选项：[值, 显示文本]；空值表示不发送该属性。 */
+    serviceOptions: function () {
+      return [
+        ['', '不发送'],
+        ['1', 'Login (1)'],
+        ['2', 'Framed (2)'],
+        ['3', 'Callback-Login (3)'],
+        ['4', 'Callback-Framed (4)'],
+        ['5', 'Outbound (5)'],
+        ['6', 'Administrative (6)'],
+        ['7', 'NAS-Prompt (7)'],
+        ['8', 'Authenticate-Only (8)'],
+        ['9', 'Callback-NAS-Prompt (9)'],
+        ['10', 'Call-Check (10)']
+      ];
+    },
+    /* 创建下拉控件；options 为 [值, 显示文本] 数组。 */
+    createSelect: function (id, options, value) {
       var sel = document.createElement('select');
       sel.className = 'app-field-select';
       if (id) { sel.id = id; }
-      Dot1x.accessOptions().forEach(function (pair) {
+      options.forEach(function (pair) {
         var opt = document.createElement('option');
         opt.value = pair[0];
         opt.textContent = pair[1];
         sel.appendChild(opt);
       });
-      sel.value = 'wired';
+      if (value !== undefined) { sel.value = value; }
       return sel;
+    },
+    /* 创建接入类型下拉（默认有线）。 */
+    createAccessSelect: function (id) {
+      return Dot1x.createSelect(id, Dot1x.accessOptions(), 'wired');
+    },
+    /* 创建 Dot1X 接入配置面板。
+       返回 { element, fields }；fields 键名：
+         accessType / ssid / nasPort / nasPortId / mac /
+         nasIdentifier / serviceType / framedIp / connectInfo
+       说明：NAS-Port(5) 是端口号（数值），NAS-Port-Id(87) 是端口名称（字符串），
+       二者语义不同，因此拆成两个独立输入框。 */
+    createPanel: function (prefix) {
+      prefix = String(prefix || 'app-dot1x');
+
+      function textField(hint) {
+        var input = document.createElement('input');
+        input.className = 'app-field-input';
+        input.type = 'text';
+        input.setAttribute('autocomplete', 'off');
+        if (hint) { input.setAttribute('placeholder', hint); }
+        return input;
+      }
+      function field(label, control, hint) {
+        var box = document.createElement('div');
+        box.className = 'app-field';
+        var l = document.createElement('label');
+        l.className = 'app-field-label';
+        l.textContent = label;
+        box.appendChild(l);
+        box.appendChild(control);
+        if (hint) {
+          var h = document.createElement('span');
+          h.className = 'app-field-hint';
+          h.textContent = hint;
+          box.appendChild(h);
+        }
+        return box;
+      }
+      function row() {
+        var r = document.createElement('div');
+        r.className = 'app-form-row';
+        return r;
+      }
+
+      var panel = document.createElement('div');
+      panel.className = 'app-dot1x-panel';
+      panel.id = uid(prefix + '-panel');
+
+      var fields = {
+        accessType: Dot1x.createAccessSelect(uid(prefix + '-accesstype')),
+        ssid: textField('Radius-Test'),
+        nasPort: textField('留空则每个用户随机'),
+        nasPortId: textField('如 GigabitEthernet0/0/1'),
+        mac: textField('留空则每个用户随机'),
+        nasIdentifier: textField('NAS 名称，留空不发送'),
+        serviceType: Dot1x.createSelect(uid(prefix + '-servicetype'),
+          Dot1x.serviceOptions(), ''),
+        framedIp: textField('留空不发送'),
+        connectInfo: textField('留空不发送')
+      };
+      fields.ssid.id = uid(prefix + '-ssid');
+      fields.nasPort.id = uid(prefix + '-nasport');
+      fields.nasPortId.id = uid(prefix + '-nasportid');
+      fields.mac.id = uid(prefix + '-mac');
+      fields.nasIdentifier.id = uid(prefix + '-nasidentifier');
+      fields.framedIp.id = uid(prefix + '-framedip');
+      fields.connectInfo.id = uid(prefix + '-connectinfo');
+
+      var ssidBox = field('SSID（无线）', fields.ssid);
+      function syncSsid() {
+        var wireless = fields.accessType.value === 'wireless';
+        fields.ssid.disabled = !wireless;
+        ssidBox.hidden = !wireless;
+      }
+      fields.accessType.addEventListener('change', syncSsid);
+      syncSsid();
+
+      var rowA = row();
+      rowA.appendChild(field('Dot1X 接入类型', fields.accessType));
+      rowA.appendChild(ssidBox);
+      panel.appendChild(rowA);
+
+      var rowB = row();
+      rowB.appendChild(field('NAS-Port（端口号，数值）', fields.nasPort,
+        '属性 5；留空则按用户序号唯一分配'));
+      rowB.appendChild(field('NAS-Port-Id（端口名称，字符串）', fields.nasPortId,
+        '属性 87；留空则不发送'));
+      rowB.appendChild(field('终端 MAC', fields.mac, '属性 31；留空则每个用户随机'));
+      panel.appendChild(rowB);
+
+      var rowC = row();
+      rowC.appendChild(field('NAS-Identifier', fields.nasIdentifier, '属性 32；留空不发送'));
+      rowC.appendChild(field('Service-Type', fields.serviceType, '属性 6；留空不发送'));
+      rowC.appendChild(field('Framed-IP-Address', fields.framedIp, '属性 8；留空不发送'));
+      rowC.appendChild(field('Connect-Info', fields.connectInfo, '属性 77；留空不发送'));
+      panel.appendChild(rowC);
+
+      return { element: panel, fields: fields };
     }
   };
   global.RtDot1x = Dot1x;
@@ -341,7 +467,11 @@
       });
     },
 
-    modal: function (title, pairs, buttons, customBody) {
+    /* 弹窗宽度档位：
+         options.width = 'wide'   加宽（测试详情、参数较多的大弹窗）
+         options.width = 'medium' 中等（短键值列表，如确认弹窗）
+       每次打开都会先清掉上一档，避免影响其他弹窗。 */
+    modal: function (title, pairs, buttons, customBody, options) {
       var host = document.getElementById('modal-host');
       var titleNode = document.getElementById('modal-title');
       var bodyNode = document.getElementById('modal-body');
@@ -349,10 +479,15 @@
       titleNode.textContent = title;
       bodyNode.innerHTML = '';
       footerNode.innerHTML = '';
-      // 每次打开弹窗先清掉上一次的加宽标记，避免影响其他弹窗
       var panelNode = document.getElementById('modal-panel');
       if (panelNode) {
-        panelNode.classList.remove('is-wide');
+        panelNode.classList.remove('is-wide', 'is-medium');
+        var width = (options || {}).width;
+        if (width === 'wide') {
+          panelNode.classList.add('is-wide');
+        } else if (width === 'medium') {
+          panelNode.classList.add('is-medium');
+        }
       }
 
       if (customBody) {
@@ -397,9 +532,16 @@
       if (host) {
         host.hidden = true;
       }
+      // 同步清掉宽度档：否则下次不带档位打开时，会残留上一次的宽度，
+      // 且 is-medium 定义在 is-wide 之后，会覆盖测试详情等弹窗的加宽效果。
+      var panelNode = document.getElementById('modal-panel');
+      if (panelNode) {
+        panelNode.classList.remove('is-wide', 'is-medium');
+      }
     },
 
-    confirm: function (title, message, pairs) {
+    /* 二次确认弹窗。options 透传给 modal，支持 { width: 'medium' | 'wide' }。 */
+    confirm: function (title, message, pairs, options) {
       return new Promise(function (resolve) {
         var okButton = UI.button('确定', 'primary');
         okButton.id = global.uid('app-confirm-ok');
@@ -437,7 +579,7 @@
           body.className = 'app-detail-value';
           body.textContent = message;
         }
-        UI.modal(title, [], [cancelButton, okButton], body);
+        UI.modal(title, [], [cancelButton, okButton], body, options);
       });
     },
 

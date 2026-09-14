@@ -418,7 +418,14 @@ code,
 
 /* 显式处理 hidden，避免被 display:flex 覆盖 */
 .app-warning[hidden],
-.app-modal-host[hidden] {
+.app-modal-host[hidden],
+.app-field[hidden],
+.app-form-row[hidden],
+.app-checkbox-row[hidden],
+.app-dot1x-panel[hidden],
+.app-user-list[hidden],
+.app-test-result[hidden],
+.app-secret-input[hidden] {
   display: none !important;
 }
 
@@ -1814,6 +1821,13 @@ code,
 
 /* ============================================================ 模板属性弹窗
    ---------------------------------------------------------- */
+/* 中等宽度档：用于键值列表类弹窗（如性能测试的「确认开始测试」），
+   比默认 720px 宽、比 1200px 收，长键值对不易换行。
+   注意：定义在 is-wide 之前，保证两个类同时存在时以加宽档为准。 */
+.app-modal-panel.is-medium {
+  width: min(960px, 90vw);
+}
+
 .app-modal-panel.is-wide {
   width: min(1200px, 92vw);
 }
@@ -1828,6 +1842,28 @@ code,
   position: sticky;
   top: 0;
   z-index: 2;
+}
+
+/* 窄屏下加宽/中等弹窗按视口收缩，避免贴边。
+   放在 is-wide 定义之后，保证同特异性下后者生效。 */
+@media (max-width: 1440px) {
+  .app-modal-panel.is-medium {
+    width: min(880px, 94vw);
+  }
+
+  .app-modal-panel.is-wide {
+    width: min(1080px, 94vw);
+  }
+}
+
+@media (max-width: 1280px) {
+  .app-modal-panel.is-medium {
+    width: min(820px, 95vw);
+  }
+
+  .app-modal-panel.is-wide {
+    width: min(960px, 95vw);
+  }
 }
 
 /* 属性表：上下 + 左右均可滚动，表头吸顶 */

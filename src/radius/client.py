@@ -313,7 +313,8 @@ class RadiusClient:
                               output_octets: int = 0,
                               message_authenticator: bool = False,
                               timeout: float = 0.0,
-                              retry_count: int = 0) -> RadiusResult:
+                              retry_count: int = 0,
+                              dot1x: dict = None) -> RadiusResult:
         """
         发送一次 Accounting-Request。
 
@@ -328,6 +329,11 @@ class RadiusClient:
             message_authenticator: 是否附加 Message-Authenticator（部分 NAC 强制要求）
             timeout: 单次等待超时（秒），0 表示沿用 Server 配置
             retry_count: 重试次数，0 表示沿用 Server 配置
+            dot1x: Dot1X 接入配置，与认证报文保持同一份；
+                传入后计费报文（Start / Interim-Update / Stop）携带同样的
+                NAS-Port / NAS-Port-Id / Called-Station-Id / Calling-Station-Id
+                及常用参数，保证服务端看到的会话属性前后一致；
+                为 None 时沿用原硬编码默认值（向后兼容）。
 
         返回：
             RadiusResult 对象。
@@ -347,7 +353,7 @@ class RadiusClient:
             effective["retry_count"] = int(retry_count)
         secret = self._secret(effective)
         session_id = session_id or uuid_util.new_radius_session_id()
-        attributes = self._base_attributes(effective, username)
+        attributes = self._base_attributes(effective, username, dot1x)
         attributes.append((codes.ATTR_ACCT_STATUS_TYPE, acct_status_type.to_bytes(4, "big")))
         attributes.append((codes.ATTR_ACCT_SESSION_ID, session_id.encode("utf-8")))
         attributes.append((builder.ATTR_ACCT_AUTHENTIC, (1).to_bytes(4, "big")))

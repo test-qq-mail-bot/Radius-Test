@@ -9,6 +9,7 @@
     socket_manager: UDP Socket 池管理器
     ws_manager: WebSocket 连接管理器
     current_session: 当前测试会话，无测试时为 None
+    disconnect_listener: Disconnect-Request 监听器（RFC 5176，需求4）
 """
 
 from typing import Optional
@@ -18,6 +19,7 @@ from ..radius.socket_pool import SocketPoolManager
 socket_manager = SocketPoolManager()
 ws_manager = None  # 由 app 初始化时赋值
 current_session = None  # type: Optional[object]
+disconnect_listener = None  # type: Optional[object]
 # 监听地址与协议信息，由 main 启动时写入
 listen_info = {
     "hosts": [],
@@ -49,3 +51,14 @@ def clear_session() -> None:
     """清空当前测试会话。"""
     global current_session
     current_session = None
+
+
+def set_disconnect_listener(listener) -> None:
+    """设置 Disconnect-Request 监听器。"""
+    global disconnect_listener
+    disconnect_listener = listener
+
+
+def get_disconnect_listener():
+    """返回 Disconnect-Request 监听器。"""
+    return disconnect_listener

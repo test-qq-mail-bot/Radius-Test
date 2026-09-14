@@ -106,9 +106,11 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def on_startup():
-        """应用启动：开启心跳监控。"""
+        """应用启动：开启心跳监控与 Disconnect-Request 监听。"""
         await manager.start_monitor()
         _install_loop_exception_handler()
+        _log_radius_environment()
+        await _start_disconnect_listener()
         logger.info("web", "Web 应用已启动", {
             "software": "%s %s" % (version.SOFTWARE_NAME, version.SOFTWARE_VERSION),
         })
@@ -117,16 +119,131 @@ def create_app() -> FastAPI:
 
     @app.on_event("shutdown")
     async def on_shutdown():
-        """应用停止：停止心跳监控并关闭连接。"""
+        """应用停止：停止心跳监控、Disconnect 监听并关闭连接。"""
         session = runtime.get_session()
         if session is not None and session.running:
             from ..testing import state as state_mod
 
             await session.stop(state_mod.SYSTEM_ERROR)
+        listener = runtime.get_disconnect_listener()
+        if listener is not None:
+            listener.stop()
         await manager.stop_monitor()
         await manager.close_all()
 
     return app
+
+
+def _log_radius_environment() -> None:
+    """
+    输出 RADIUS 运行环境摘要（DEBUG 级）。
+
+    排查强制下线时，第一个要确认的问题是「服务端会把 Disconnect-Request 发到哪个地址」：
+    服务端通常以报文源地址（或 NAS-IP-Address 属性）作为 NAS 地址。
+    因此这里把每个已启用 Server 的 NAS-IP-Address 生效值、报文源地址配置与本机可用
+    IPv4 一并打出，便于拿到日志后直接比对。
+    """
+    if not logger.is_debug_enabled():
+        return
+    from ..config import loader
+    from ..radius.disconnect import local_ipv4_candidates
+
+    servers = [s for s in loader.get_servers() if s.get("enabled", True)]
+    if not servers:
+        logger.debug("radius", "尚未配置可用的 RADIUS Server", {})
+        return
+    for server in servers:
+        target = str(server.get("authentication_server_address")
+                     or server.get("server_address") or "")
+        account_target = str(server.get("accounting_server_address") or target)
+        nas_ip = str(server.get("nas_ip_address") or "").strip()
+        source = str(server.get("source_address") or "").strip()
+        logger.debug("radius", "RADIUS 运行环境摘要", {
+            "server": str(server.get("name") or target),
+            "auth_target": "%s:%s" % (target, server.get("authentication_port") or 1812),
+            "acct_target": "%s:%s" % (account_target, server.get("accounting_port") or 1813),
+            "nas_ip_address": nas_ip or "(未配置：服务端只能依据报文源地址识别 NAS)",
+            "source_address": source or "(未指定：由系统路由选择)",
+            "local_ipv4": ",".join(local_ipv4_candidates(target)) or "(未知)",
+        })
+
+
+async def _start_disconnect_listener() -> None:
+    """
+    启动 Disconnect-Request 监听（RFC 5176，需求4）。
+
+    密钥来源：全部已启用 RADIUS Server 的通用 / 认证 / 计费密钥，逐个尝试校验，
+    任一命中即视为合法请求（服务端不同实现使用的密钥字段可能不同）。
+
+    监听失败（例如 3799 已被同机的 RADIUS 服务器占用）只记录日志并降级运行，
+    认证与计费功能不受影响。
+    """
+    from ..config import loader
+    from ..radius.disconnect import DISCONNECT_PORT, DisconnectListener
+
+    options = (loader.load_config().get("test") or {}).get("disconnect_listener") or {}
+
+    # 用第一个已启用 Server 的地址推导本机出口地址，便于优先绑定正确的网卡
+    probe_host = ""
+    for server in loader.get_servers():
+        if not server.get("enabled", True):
+            continue
+        probe_host = str(server.get("authentication_server_address")
+                         or server.get("server_address") or "").strip()
+        if probe_host:
+            break
+
+    listener = DisconnectListener(
+        port=int(options.get("port") or DISCONNECT_PORT),
+        enabled=bool(options.get("enabled", True)),
+        probe_host=probe_host,
+    )
+
+    def secret_candidates():
+        """汇总所有候选共享密钥（去重），供逐个校验。"""
+        items = []
+        seen = set()
+        for server in loader.get_servers():
+            if not server.get("enabled", True):
+                continue
+            name = str(server.get("name") or server.get("server_address") or "")
+            for field in ("shared_secret", "authentication_secret", "accounting_secret"):
+                secret = str(server.get(field) or "")
+                if secret and (field, secret) not in seen:
+                    seen.add((field, secret))
+                    items.append((name, secret))
+        return items
+
+    async def on_disconnect(session_id: str, username: str, peer: str,
+                            server_name: str) -> None:
+        """收到校验通过的 Disconnect-Request：把匹配到的在线会话判定为掉线。"""
+        session = runtime.get_session()
+        if session is None:
+            logger.warning("radius", "收到 Disconnect-Request，但当前没有运行中的测试会话", {
+                "peer": peer,
+                "username": username or "-",
+                "session_id": session_id or "-",
+            })
+            return
+        target = await session.mark_forced_offline(session_id, username)
+        if target is None:
+            logger.warning("radius", "Disconnect-Request 未匹配到在线会话", {
+                "peer": peer,
+                "username": username or "-",
+                "session_id": session_id or "-",
+                "hint": "请核对服务端下发的 Acct-Session-Id 或 User-Name 与本工具记录是否一致",
+            })
+        else:
+            logger.info("radius", "强制下线已计入统计", {
+                "username": target.username,
+                "session_id": target.session_id,
+                "server": server_name or "-",
+            })
+
+    listener.set_secret_provider(secret_candidates)
+    listener.set_handler(on_disconnect)
+    runtime.set_disconnect_listener(listener)
+    await listener.start()
 
 
 def _install_loop_exception_handler() -> None:

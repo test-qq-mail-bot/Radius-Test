@@ -71,8 +71,8 @@ def _accounting_failure_text(server: dict, acct_result) -> str:
 
 async def _register_online(online_manager, username: str, server_name: str,
                            session_id: str, protocol: str, task_id: str,
-                           interim_disabled: bool) -> None:
-    """登记在线会话。"""
+                           interim_disabled: bool, dot1x: dict = None) -> None:
+    """登记在线会话。dot1x 随会话保存，供后台 Interim-Update 复用同一组接入属性。"""
     if online_manager is None:
         return
     await online_manager.add(acct_mod.OnlineSession(
@@ -82,6 +82,7 @@ async def _register_online(online_manager, username: str, server_name: str,
         protocol=protocol,
         task_id=task_id,
         interim_disabled=interim_disabled,
+        dot1x=dot1x,
     ))
 
 
@@ -93,7 +94,8 @@ async def run_user_task(client, server: dict, username: str, password: str,
                         online_criteria: str = "accounting",
                         accounting_timeout: float = 0.0,
                         accounting_retry_count: int = 0,
-                        accounting_message_authenticator: bool = False) -> TaskOutcome:
+                        accounting_message_authenticator: bool = False,
+                        dot1x: dict = None) -> TaskOutcome:
     """
     执行一次完整的单用户测试。
 
@@ -113,6 +115,8 @@ async def run_user_task(client, server: dict, username: str, password: str,
         accounting_timeout: 计费报文单次等待超时（秒），0 表示沿用 Server 配置
         accounting_retry_count: 计费报文重试次数，0 表示沿用 Server 配置
         accounting_message_authenticator: 计费报文是否附加 Message-Authenticator
+        dot1x: Dot1X 接入配置，同时作用于认证报文与计费报文，并随在线会话保存，
+            使后台 Interim-Update 使用同一组接入属性；None 表示沿用原硬编码默认值
 
     返回：
         TaskOutcome 对象。
@@ -124,7 +128,7 @@ async def run_user_task(client, server: dict, username: str, password: str,
     try:
         try:
             result = await client.authenticate(server, username, password, protocol,
-                                               peer_challenge_bytes)
+                                               peer_challenge_bytes, dot1x=dot1x)
         except Exception as exc:
             outcome.status = state_mod.FAILED
             outcome.error = "认证异常；%s" % exc
@@ -176,7 +180,7 @@ async def run_user_task(client, server: dict, username: str, password: str,
         if outcome.online:
             # 「认证成功即在线」口径下立刻登记，避免在线数在计费重试期间恒为 0
             await _register_online(online_manager, username, server_name, session_id,
-                                   protocol, task_id, interim_disabled=True)
+                                   protocol, task_id, interim_disabled=True, dot1x=dot1x)
             registered = True
 
         try:
@@ -184,7 +188,8 @@ async def run_user_task(client, server: dict, username: str, password: str,
                 server, username, 1, session_id,
                 timeout=accounting_timeout,
                 retry_count=accounting_retry_count,
-                message_authenticator=accounting_message_authenticator)
+                message_authenticator=accounting_message_authenticator,
+                dot1x=dot1x)
         except Exception as exc:
             acct_result = None
             outcome.acct_error = "计费上线异常；%s" % exc
@@ -205,7 +210,8 @@ async def run_user_task(client, server: dict, username: str, password: str,
                     session.interim_disabled = not succeeded
             elif online_manager is not None:
                 await _register_online(online_manager, username, server_name, session_id,
-                                       protocol, task_id, interim_disabled=(not succeeded))
+                                       protocol, task_id, interim_disabled=(not succeeded),
+                                       dot1x=dot1x)
                 registered = True
             if not succeeded:
                 outcome.error = "提示：计费未成功；%s" % outcome.acct_error
@@ -217,7 +223,8 @@ async def run_user_task(client, server: dict, username: str, password: str,
                 outcome.error = outcome.acct_error
             elif not registered:
                 await _register_online(online_manager, username, server_name, session_id,
-                                       protocol, task_id, interim_disabled=False)
+                                       protocol, task_id, interim_disabled=False,
+                                       dot1x=dot1x)
                 registered = True
 
         _persist(task_id, username, server_name, outcome)

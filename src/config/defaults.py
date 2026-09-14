@@ -54,6 +54,14 @@ DEFAULT_CONFIG = {
         #   accounting = Access-Accept 且 Accounting-Start 成功才算在线（默认，反映服务端真实状态）
         #   auth       = Access-Accept 即算在线（服务端不支撑计费时也能测在线与并发能力）
         "online_criteria": "accounting",
+        # Disconnect-Request 监听（RFC 5176）：
+        # 接收 RADIUS 服务器主动下发的强制下线通知，回 DM-ACK 并计入掉线统计。
+        # 若本机 3799 已被占用（例如与 RADIUS 服务器同机部署），
+        # 监听会自动降级为 WARNING，不影响认证与计费功能。
+        "disconnect_listener": {
+            "enabled": True,
+            "port": 3799,
+        },
     },
     "storage": {
         # 是否保存 RADIUS 原始报文，关闭时只保存认证状态
@@ -147,6 +155,11 @@ test:
   interim_max_fail: 3
   # 在线判定依据：accounting=计费上线成功才算在线（默认）；auth=认证成功即在线
   online_criteria: accounting
+  # Disconnect-Request 监听（RFC 5176）：接收服务端强制下线通知并计入掉线统计
+  # 若 3799 已被占用（与 RADIUS 服务器同机部署时常见），监听自动降级为告警，不影响认证计费
+  disconnect_listener:
+    enabled: true
+    port: 3799
 
 storage:
   save_packets: false

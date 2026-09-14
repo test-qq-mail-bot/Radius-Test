@@ -231,54 +231,17 @@
       batchBar.appendChild(exportCsvBtn);
 
       // ---- Dot1X 接入配置（单个 / 批量账号认证测试共用，常显）----
-      function dot1xField(labelText, control, hint) {
-        var box = document.createElement('div');
-        box.className = 'app-field';
-        var l = document.createElement('label');
-        l.className = 'app-field-label';
-        l.textContent = labelText;
-        box.appendChild(l);
-        box.appendChild(control);
-        if (hint) {
-          var h = document.createElement('span');
-          h.className = 'app-field-hint';
-          h.textContent = hint;
-          box.appendChild(h);
-        }
-        return box;
-      }
-      var dot1xPanel = document.createElement('div');
-      dot1xPanel.className = 'app-form-row app-user-batch-dot1x-panel';
-      dot1xPanel.id = 'app-user-batch-dot1x-panel';
-      // 接入类型默认有线；SSID 仅无线可用，留空由后端置为 Radius-Test；
-      // NAS PORT ID 与终端 MAC 留空则由后端按「每个用户各自随机」生成合法值。
-      var dot1xAccessType = global.RtDot1x.createAccessSelect('app-user-batch-accesstype');
-      var dot1xSsid = makeInput('dot1x-ssid', 'Radius-Test', 'text', 'off');
-      dot1xSsid.id = 'app-user-batch-ssid';
-      var dot1xNasPort = makeInput('dot1x-nas-port', '留空则每个用户随机', 'text', 'off');
-      dot1xNasPort.id = 'app-user-batch-nasport';
-      var dot1xMac = makeInput('dot1x-mac', '留空则每个用户随机', 'text', 'off');
-      dot1xMac.id = 'app-user-batch-mac';
-      var dot1xSsidField = dot1xField('SSID（无线）', dot1xSsid);
-      function syncDot1xSsid() {
-        var wireless = dot1xAccessType.value === 'wireless';
-        dot1xSsid.disabled = !wireless;
-        dot1xSsidField.hidden = !wireless;
-      }
-      dot1xAccessType.addEventListener('change', syncDot1xSsid);
-      syncDot1xSsid();
-      dot1xPanel.appendChild(dot1xField('Dot1X 接入类型', dot1xAccessType));
-      dot1xPanel.appendChild(dot1xSsidField);
-      dot1xPanel.appendChild(dot1xField('NAS PORT ID', dot1xNasPort, '留空则每个用户随机生成合法值'));
-      dot1xPanel.appendChild(dot1xField('终端 MAC', dot1xMac, '留空则每个用户随机生成合法值'));
+      // 由公共助手统一生成：接入类型 / SSID / NAS-Port（端口号，属性5）/
+      // NAS-Port-Id（端口名称，属性87）/ 终端 MAC / 常用参数。
+      // 留空字段：NAS-Port 与终端 MAC 由后端按每个用户随机生成，其余可选项不发送。
+      var dot1xPanel = global.RtDot1x.createPanel('app-user-batch');
 
       function buildBatchDot1x() {
-        return global.RtDot1x.build(
-          dot1xAccessType.value, dot1xSsid.value, dot1xNasPort.value, dot1xMac.value);
+        return global.RtDot1x.build(dot1xPanel.fields);
       }
 
       listHost.appendChild(batchBar);
-      listHost.appendChild(dot1xPanel);
+      listHost.appendChild(dot1xPanel.element);
 
       var tableHost = document.createElement('div');
       tableHost.id = global.uid('app-user-table-host');
