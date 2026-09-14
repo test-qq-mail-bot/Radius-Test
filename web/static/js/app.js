@@ -24,6 +24,47 @@
   }
   global.uid = uid;
 
+  /* Dot1X 接入配置助手。
+     账号认证测试（Server 列表单用户测试 / 用户列表单个与批量测试）统一使用，
+     避免各页面各写一份、字段名不一致。
+
+     约定：
+       - 接入类型默认「有线」；
+       - SSID 仅无线使用，留空由后端置为 Radius-Test；
+       - NAS PORT ID 与终端 MAC 留空时由后端按「每个用户各自随机」生成合法值，
+         填写则全部被测用户共用该固定值。 */
+  var Dot1x = {
+    /* 构造传给后端的 dot1x 参数。留空字段传空串，交后端按用户随机生成。 */
+    build: function (accessType, ssid, nasPort, mac) {
+      var wireless = String(accessType || 'wired').toLowerCase() === 'wireless';
+      return {
+        access_type: wireless ? 'wireless' : 'wired',
+        ssid: wireless ? String(ssid || '').trim() : '',
+        nas_port: String(nasPort || '').trim(),
+        calling_station_id: String(mac || '').trim()
+      };
+    },
+    /* 接入类型下拉选项：[值, 显示文本]。 */
+    accessOptions: function () {
+      return [['wired', '有线'], ['wireless', '无线']];
+    },
+    /* 创建接入类型下拉（默认有线）。调用方自行决定 id 与样式。 */
+    createAccessSelect: function (id) {
+      var sel = document.createElement('select');
+      sel.className = 'app-field-select';
+      if (id) { sel.id = id; }
+      Dot1x.accessOptions().forEach(function (pair) {
+        var opt = document.createElement('option');
+        opt.value = pair[0];
+        opt.textContent = pair[1];
+        sel.appendChild(opt);
+      });
+      sel.value = 'wired';
+      return sel;
+    }
+  };
+  global.RtDot1x = Dot1x;
+
   /* 中文字段显示回退：内置字典里部分属性的 name_zh 尚未翻译（与英文名相同，
      或纯英文无汉字）。这类情况直接返回空串，避免「Name」与「Name_ZH」两列
      显示一模一样的英文，造成"满屏英文"的观感。

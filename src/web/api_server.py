@@ -8,7 +8,16 @@ RADIUS Server 管理接口模块。
     PUT    /api/servers/{name}        修改
     DELETE /api/servers/{name}        删除
     POST   /api/servers/{name}/test   连通性测试（探测账号）
-    POST   /api/servers/{name}/auth-test  Radius 用户认证测试（指定账号）
+    POST   /api/servers/{name}/auth-test        Radius 用户认证测试（单个账号）
+    POST   /api/servers/{name}/batch-auth-test  Radius 用户认证测试（批量账号）
+
+认证测试请求体（auth-test / batch-auth-test）可带可选字段 dot1x，用于指定
+Dot1X 接入配置；不传时沿用 V5 之前的硬编码属性（`NAS-Port=1`、
+`Called-Station-Id=00-00-00-00-00-00:Radius-Test`、`Calling-Station-Id=02-00-00-00-00-01`）：
+    {"access_type": "wired" | "wireless",        # 默认 wired（NAS-Port-Type 15 / 19）
+     "ssid": "SSID",                             # 仅 wireless 生效，留空取 Radius-Test
+     "nas_port": 2002,                           # 留空则每个用户各自随机（1~65535）
+     "calling_station_id": "AA-BB-CC-DD-EE-FF"}  # 终端 MAC，留空则每个用户各自随机
 
 字段名称固定使用（项目书 12）：
     authentication_port / accounting_port / nas_ip_address

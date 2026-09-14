@@ -557,12 +557,67 @@ code,
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-@media (max-width: 1280px) {
+/* ============================================================ 响应式适配
+   覆盖常用 PC 分辨率：1920×1080 / 1600×900 / 1440×900 / 1366×768 / 1280×720。
+   逐级收窄侧栏与内容内边距、下调网格列数，避免横向溢出与错位。 */
+@media (max-width: 1600px) {
+  .app-grid-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1440px) {
+  :root {
+    --sidebar-width: 216px;
+  }
   .app-grid-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .app-content {
+    padding: 20px 22px 32px;
+  }
+  .app-header {
+    padding: 0 22px;
+  }
+}
+
+@media (max-width: 1366px) {
+  :root {
+    --sidebar-width: 200px;
+  }
   .app-grid-3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .app-content {
+    padding: 18px 18px 28px;
+  }
+  .app-header {
+    padding: 0 18px;
+  }
+  .app-field {
+    min-width: 180px;
+  }
+  .app-form-row > .app-field {
+    flex: 1 1 180px;
+  }
+}
+
+@media (max-width: 1280px) {
+  :root {
+    --sidebar-width: 188px;
+  }
+  .app-grid-4,
+  .app-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .app-content {
+    padding: 16px 16px 24px;
+  }
+  .app-header {
+    padding: 0 16px;
+  }
+  .app-modal-panel {
+    width: min(680px, 94vw);
   }
 }
 
@@ -699,6 +754,20 @@ code,
   background: var(--color-surface-hover);
   color: var(--color-text-subtle);
   cursor: not-allowed;
+}
+
+/* 输入框占位提示：浅色文字内嵌（如 SSID 为空时的 Radius-Test、
+   NAS PORT ID / 终端 MAC 的「留空则每个用户随机」提示）。 */
+.app-field-input::placeholder,
+.app-field-textarea::placeholder {
+  color: var(--color-text-subtle);
+  opacity: 1;
+}
+
+.app-field-input::-webkit-input-placeholder,
+.app-field-textarea::-webkit-input-placeholder {
+  color: var(--color-text-subtle);
+  opacity: 1;
 }
 
 /* 密钥/密码输入框：输入框内右侧放置眼睛切换按钮 */

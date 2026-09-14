@@ -346,6 +346,24 @@
         protoField.appendChild(protoLabel);
         protoField.appendChild(protoSelect);
 
+        // Dot1X 接入配置：接入类型默认有线；SSID 仅无线可用，留空由后端置为 Radius-Test；
+        // NAS PORT ID 与终端 MAC 留空则由后端按「每个用户各自随机」生成合法值。
+        var accessTypeSelect = global.RtDot1x.createAccessSelect(uid('app-usertest-accesstype'));
+        var ssidInput = input('usertest-ssid', '', 'text', 'off', uid('app-usertest-ssid'));
+        ssidInput.setAttribute('placeholder', 'Radius-Test');
+        var nasPortInput = input('usertest-nas-port', '', 'text', 'off', uid('app-usertest-nasport'));
+        nasPortInput.setAttribute('placeholder', '留空则每个用户随机');
+        var macInput = input('usertest-mac', '', 'text', 'off', uid('app-usertest-mac'));
+        macInput.setAttribute('placeholder', '留空则每个用户随机');
+        var ssidField = field('SSID（无线）', ssidInput);
+        function syncSsidState() {
+          var wireless = accessTypeSelect.value === 'wireless';
+          ssidInput.disabled = !wireless;
+          ssidField.hidden = !wireless;
+        }
+        accessTypeSelect.addEventListener('change', syncSsidState);
+        syncSsidState();
+
         var resultBox = document.createElement('div');
         resultBox.className = 'app-detail-list';
         var resultWrap = document.createElement('div');
@@ -373,12 +391,8 @@
             return;
           }
           global.RtUI.withLoading(testBtn, function () {
-            var dot1x = {
-              access_type: accessTypeSelect.value,
-              ssid: accessTypeSelect.value === 'wireless' ? (ssidInput.value.trim() || '') : '',
-              nas_port: nasPortInput.value.trim() || '',
-              calling_station_id: macInput.value.trim() || ''
-            };
+            var dot1x = global.RtDot1x.build(
+              accessTypeSelect.value, ssidInput.value, nasPortInput.value, macInput.value);
             return global.RtApi.testUserAuth(server.name, {
               username: user,
               password: pass,
@@ -424,6 +438,10 @@
         body.appendChild(field('用户名', username, null, [{ type: 'required' }]));
         body.appendChild(field('密码', password, null, [{ type: 'required' }]));
         body.appendChild(protoField);
+        body.appendChild(field('Dot1X 接入类型', accessTypeSelect));
+        body.appendChild(ssidField);
+        body.appendChild(field('NAS PORT ID', nasPortInput, '留空则每个用户随机生成合法值'));
+        body.appendChild(field('终端 MAC', macInput, '留空则每个用户随机生成合法值'));
         body.appendChild(resultWrap);
         global.RtUI.modal('Radius 用户测试 - ' + server.name, [], [cancelBtn, testBtn], body);
       }
