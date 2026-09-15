@@ -244,7 +244,7 @@
         metricsHost.appendChild(metricNode('测试状态', d.status_text || '空闲', ''));
         metricsHost.appendChild(metricNode('当前在线数', d.online || 0, '个'));
         metricsHost.appendChild(metricNode('掉线率', d.drop_rate || 0, '%'));
-        metricsHost.appendChild(metricNode('平均掉线时长', d.avg_drop_duration || 0, '秒'));
+        metricsHost.appendChild(metricNode('掉线前在线时长', d.avg_drop_duration || 0, '秒'));
         metricsHost.appendChild(metricNode('总请求数', d.total || 0, '次'));
         metricsHost.appendChild(metricNode('成功率', d.success_rate || 0, '%'));
         metricsHost.appendChild(metricNode('成功数', d.success || 0, '次'));
@@ -309,13 +309,13 @@
           ['启用计费', payload.enable_accounting ? '是' : '否'],
           ['在线判定依据', payload.online_criteria === 'auth' ? '认证成功' : '计费上线成功'],
           ['Dot1X 接入类型', accessText],
-          ['NAS-Port（端口号）', d.nas_port || '按用户序号唯一分配'],
-          ['NAS-Port-Id（端口名称）', d.nas_port_id || '不发送'],
-          ['终端 MAC', d.calling_station_id || '每个用户随机'],
-          ['NAS-Identifier', d.nas_identifier || '不发送'],
-          ['Service-Type', d.service_type || '不发送'],
-          ['Framed-IP-Address', d.framed_ip_address || '不发送'],
-          ['Connect-Info', d.connect_info || '不发送']
+          ['NAS-Port（端口号）', d.nas_port || '自动生成（按用户唯一）'],
+          ['NAS-Port-Id（端口名称）', d.nas_port_id || '自动生成（按用户唯一）'],
+          ['终端 MAC', d.calling_station_id || '自动生成（按用户唯一）'],
+          ['NAS-Identifier', d.nas_identifier || '自动生成（全局统一）'],
+          ['Service-Type', d.service_type || '自动生成（全局统一）'],
+          ['Framed-IP-Address', d.framed_ip_address || '自动生成（按用户唯一）'],
+          ['Connect-Info', d.connect_info || '自动生成（全局统一）']
         ], { width: 'medium' }).then(function (confirmed) {
           if (!confirmed) {
             return null;
@@ -411,6 +411,9 @@
           }
         });
       }
+
+      // 整块勾选行可点击切换（Req1：不只点小框）
+      global.RtUI.bindCheckboxRows(container);
 
       global.RtUI.bindRefresh(load);
       return load();

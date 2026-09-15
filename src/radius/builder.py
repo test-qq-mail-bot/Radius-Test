@@ -71,6 +71,138 @@ def _random_mac() -> str:
         random.randint(0, 255) for _ in range(6))
 
 
+def _index_mac(index: int) -> str:
+    """按用户序号生成唯一终端 MAC（本地管理地址段 02-00-...，不会与其他用户重复）。"""
+    value = int(index) + 1
+    return "02-00-%02X-%02X-%02X-%02X" % (
+        (value >> 24) & 0xFF, (value >> 16) & 0xFF,
+        (value >> 8) & 0xFF, value & 0xFF,
+    )
+
+
+def _random_nas_port_id() -> str:
+    """生成合法随机 NAS-Port-Id(87) 端口名称（如 GigabitEthernet0/0/12）。"""
+    return "GigabitEthernet%d/%d" % (random.randint(0, 3), random.randint(0, 47))
+
+
+def _index_nas_port_id(index: int) -> str:
+    """按用户序号生成唯一 NAS-Port-Id(87)（每 48 口视为一张板卡）。"""
+    value = int(index)
+    return "GigabitEthernet%d/%d" % (value // 48, value % 48)
+
+
+def _random_nas_identifier() -> str:
+    """生成合法随机 NAS-Identifier(32) 主机名（符合 RFC 1123，如 nas-1a2b）。"""
+    return "nas-%04x" % random.randint(0, 65535)
+
+
+def _random_connect_info() -> str:
+    """生成合法随机 Connect-Info(77)（如 CONNECT 123456789）。"""
+    return "CONNECT %d" % random.randint(100000000, 999999999)
+
+
+def _random_service_type() -> int:
+    """生成合法随机 Service-Type(6) 取值（取 SERVICE_TYPES 内 RFC 2865 定义值 1~10）。"""
+    return random.choice(sorted(SERVICE_TYPES.values()))
+
+
+def _random_framed_ip() -> str:
+    """生成合法随机 Framed-IP-Address(8)（RFC 1918 私有段，避免与真实地址冲突）。"""
+    return "10.%d.%d.%d" % (random.randint(0, 255), random.randint(0, 255),
+                            random.randint(1, 254))
+
+
+def _index_framed_ip(index: int) -> str:
+    """按用户序号唯一生成 Framed-IP-Address(8)（10.0.0.0/8 段递增，封顶 10.255.255.254）。"""
+    value = min(int(index) + 1, 0xFFFFFE)
+    return "10.%d.%d.%d" % ((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
+
+
+def _index_nas_port(index: int) -> int:
+    """按用户序号唯一分配 NAS-Port(5)：第 1 个用户 1000，封顶 65535。"""
+    return min(1000 + int(index), 65535)
+
+
+def resolve_device_fields(dot1x: Optional[dict] = None) -> dict:
+    """
+    填充「设备级」默认值：NAS-Identifier(32)、Service-Type(6)、Connect-Info(77)。
+
+    设备级字段一次测试只生成一个取值，全部被测用户共用
+    （同一台 NAS 的标识与服务类型应当保持一致）。
+
+    参数：
+        dot1x: 前端传入的 Dot1X 配置，可为 None
+
+    返回：
+        新的 dict（不修改入参）；三个字段留空时写入默认随机合法值。
+    """
+    dot1x = dict(dot1x or {})
+    if not str(dot1x.get("nas_identifier") or "").strip():
+        dot1x["nas_identifier"] = _random_nas_identifier()
+    if not str(dot1x.get("service_type") or "").strip():
+        dot1x["service_type"] = _random_service_type()
+    if not str(dot1x.get("connect_info") or "").strip():
+        dot1x["connect_info"] = _random_connect_info()
+    return dot1x
+
+
+def resolve_port_fields(dot1x: Optional[dict] = None, index: Optional[int] = None) -> dict:
+    """
+    填充「端口/终端级」默认值：NAS-Port(5)、NAS-Port-Id(87)、
+    终端 MAC(Calling-Station-Id 31)、Framed-IP-Address(8)。
+
+    这些字段与「哪一个用户 / 哪一个接入端口」绑定，因此：
+        - 性能测试传入 index 时**按用户序号唯一生成**，避免多用户取值碰撞
+          导致服务端把不同会话串成一条；
+        - 单用户认证测试不传 index，直接随机生成。
+
+    参数：
+        dot1x: Dot1X 配置
+        index: 用户在列表中的序号；None 表示随机
+
+    返回：
+        新的 dict（不修改入参）；四个字段留空时写入默认合法值。
+    """
+    dot1x = dict(dot1x or {})
+    if not str(dot1x.get("nas_port") or "").strip():
+        dot1x["nas_port"] = _index_nas_port(index) if index is not None \
+            else random.randint(1, 65535)
+    if not str(dot1x.get("nas_port_id") or "").strip():
+        dot1x["nas_port_id"] = _index_nas_port_id(index) if index is not None \
+            else _random_nas_port_id()
+    if not str(dot1x.get("calling_station_id") or "").strip():
+        dot1x["calling_station_id"] = _index_mac(index) if index is not None \
+            else _random_mac()
+    if not str(dot1x.get("framed_ip_address") or "").strip():
+        dot1x["framed_ip_address"] = _index_framed_ip(index) if index is not None \
+            else _random_framed_ip()
+    return dot1x
+
+
+def resolve_dot1x(dot1x: Optional[dict] = None, index: Optional[int] = None) -> dict:
+    """
+    统一入口：把 Dot1X 配置补齐为「可直接发送」的完整配置。
+
+    口径（用户确认，2026-09-15）：
+        面板上除接入类型与 SSID 外，其余字段**一律可自定义**；
+        **留空时用默认生成的合法值发送出去，不存在「留空不发送」**。
+        适用字段：NAS-Port(5)、NAS-Port-Id(87)、终端 MAC(31)、
+        NAS-Identifier(32)、Service-Type(6)、Framed-IP-Address(8)、Connect-Info(77)。
+
+    本函数是性能测试与全部账号认证测试（用户列表单个/批量、Server 用户测试）
+    **共用的唯一口径**，任何测试入口都不得自建字段白名单；
+    三个测试入口的面板字段也完全一致（不再对任何入口排除字段）。
+
+    参数：
+        dot1x: 前端传入的 Dot1X 配置，可为 None 或空字典
+        index: 用户在列表中的序号；性能测试传入，单用户测试不传
+
+    返回：
+        新的 dict（不修改入参）。
+    """
+    return resolve_port_fields(resolve_device_fields(dot1x), index)
+
+
 def _service_type_value(raw) -> Optional[int]:
     """
     解析 Service-Type(6) 取值。
@@ -95,8 +227,12 @@ def _append_common_attributes(result: List[Tuple[int, bytes]], dot1x: dict) -> N
     """
     追加常用可配置属性。
 
-    含 NAS-Identifier(32)、Service-Type(6)、Framed-IP-Address(8)、Connect-Info(77)；
-    全部遵循「留空即不发送」，避免未填写时改变报文内容。
+    含 NAS-Identifier(32)、Service-Type(6)、Framed-IP-Address(8)、Connect-Info(77)。
+
+    说明（2026-09-15 口径）：传入的 dot1x 应已由 resolve_dot1x / resolve_device_fields /
+    resolve_port_fields 补齐默认值，正常路径下这四个属性一定有值。此处仍保留空值判断，
+    仅作为「调用方绕过 resolve 层」时的兜底，避免构造出非法报文
+    （Service-Type 取值非法时同样跳过，见 _service_type_value）。
     """
     nas_identifier = str(dot1x.get("nas_identifier") or "").strip()
     if nas_identifier:
@@ -138,14 +274,20 @@ def base_attributes(server: dict, username: str,
             "ap_mac": str,               # 仅无线用，Called-Station-Id 前缀，默认全 0
             "nas_port": int | str,       # NAS-Port(5) 端口号（数值）
             "nas_port_id": str,          # NAS-Port-Id(87) 端口名称（字符串）
-            "calling_station_id": str,   # 终端 MAC，可空则随机
-            "nas_identifier": str,       # NAS-Identifier(32)，可空则不发送
-            "service_type": int | str,   # Service-Type(6)，可空则不发送
-            "framed_ip_address": str,    # Framed-IP-Address(8)，可空则不发送
-            "connect_info": str,         # Connect-Info(77)，可空则不发送
+            "calling_station_id": str,   # 终端 MAC
+            "nas_identifier": str,       # NAS-Identifier(32)
+            "service_type": int | str,   # Service-Type(6)
+            "framed_ip_address": str,    # Framed-IP-Address(8)
+            "connect_info": str,         # Connect-Info(77)
         }
-    除 NAS-Port(5) 与终端 MAC 外，其余可选字段留空一律「不发送该属性」，
-    以保持与未配置时一致的行为；为 None 时沿用原硬编码默认值。
+
+    口径（2026-09-15，用户确认）：
+        dot1x 应在进入本函数前由 builder.resolve_dot1x() 补齐，
+        **NAS-Port / NAS-Port-Id / 终端 MAC / NAS-Identifier / Connect-Info
+        留空一律使用默认生成的合法值发送，不存在「留空不发送」**。
+        本函数仅对真正未配置（dot1x 为 None，例如直接调 API 且不带该字段）
+        的情况沿用原硬编码属性以保持向后兼容。
+        注：NAS-Port 与终端 MAC 仍保留兜底随机，防止调用方漏过 resolve 层。
     """
     result = [(codes.ATTR_USER_NAME, username.encode("utf-8"))]
     nas_ip = str(server.get("nas_ip_address", "")).strip()

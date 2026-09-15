@@ -31,6 +31,7 @@ from . import (
     api_user,
 )
 from . import runtime
+from . import page_liveness
 from .ws import WebSocketManager
 
 
@@ -106,8 +107,9 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def on_startup():
-        """应用启动：开启心跳监控与 Disconnect-Request 监听。"""
+        """应用启动：开启连接保活、测试页面存活看门狗与 Disconnect-Request 监听。"""
         await manager.start_monitor()
+        await page_liveness.start_watch()
         _install_loop_exception_handler()
         _log_radius_environment()
         await _start_disconnect_listener()
@@ -119,7 +121,7 @@ def create_app() -> FastAPI:
 
     @app.on_event("shutdown")
     async def on_shutdown():
-        """应用停止：停止心跳监控、Disconnect 监听并关闭连接。"""
+        """应用停止：停止连接保活、页面看门狗、Disconnect 监听并关闭连接。"""
         session = runtime.get_session()
         if session is not None and session.running:
             from ..testing import state as state_mod
@@ -128,6 +130,7 @@ def create_app() -> FastAPI:
         listener = runtime.get_disconnect_listener()
         if listener is not None:
             listener.stop()
+        await page_liveness.stop_watch()
         await manager.stop_monitor()
         await manager.close_all()
 

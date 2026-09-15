@@ -99,6 +99,9 @@
         dot1x: dot1x || null
       });
     },
+    userTestStop: function () {
+      return this.post('/api/servers/user-tests/stop');
+    },
     listUsers: function () {
       return this.get('/api/users');
     },
@@ -158,8 +161,14 @@
     stopTask: function (taskId) {
       return this.post('/api/tasks/' + encodeURIComponent(taskId) + '/stop');
     },
-    heartbeat: function () {
-      return this.post('/api/tasks/heartbeat', {});
+    // 测试页面心跳：上报当前页面标识，后端据此判断「前端是否仍停在测试页面」。
+    // 只有测试页面（perf / server）的心跳会刷新存活时间；上报其他页面表示已离开。
+    heartbeat: function (page) {
+      return this.post('/api/tasks/heartbeat', { page: page || '' });
+    },
+    // 测试页面离开：应用内跳转到非测试页面时立即通知后端中断测试。
+    pageLeave: function (page) {
+      return this.post('/api/tasks/leave', { page: page || '' });
     },
     queryResults: function (params) {
       return this.get('/api/results?' + params);

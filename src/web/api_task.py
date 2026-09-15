@@ -6,11 +6,18 @@
     GET  /api/tasks/current        当前测试会话快照
     POST /api/tasks                启动测试
     POST /api/tasks/{task_id}/stop 停止测试
-    POST /api/tasks/heartbeat      前端心跳
+    POST /api/tasks/heartbeat      测试页面心跳（存活上报）
+    POST /api/tasks/leave          测试页面离开（立即中断）
 
 安全机制（项目书 26）：
     启动需前端二次确认（确认动作在前端完成，本接口只负责执行）；
     停止按钮触发后立即取消全部在途任务。
+
+    测试存活判据（需求5）：唯一依据是「前端是否仍停在测试页面」，
+    由 web.page_liveness 维护，两条通路——
+        1. 测试页面每 2 秒调用 /heartbeat 上报，超过 4 秒未上报即中断；
+        2. 应用内跳到非测试页面时立即中断（POST /leave 或由心跳上报的页面判定）。
+    窗口切到后台不算离开页面，测试继续运行。
 """
 
 from typing import Any, Dict, List, Optional
@@ -19,8 +26,10 @@ from fastapi import APIRouter, HTTPException
 
 from ..config import defaults, loader
 from ..logging import logger
+from ..radius import builder as radius_builder
 from ..testing import state as state_mod
 from ..testing.session import TestSession
+from . import page_liveness
 from . import runtime
 from .api_user import _load_users
 
@@ -138,6 +147,9 @@ async def start_task(payload: Dict[str, Any]):
     existing = runtime.get_session()
     if existing is not None and existing.running:
         raise HTTPException(status_code=400, detail="已有测试正在运行，请先停止")
+    # 互斥（需求3/5）：账号认证测试进行中不允许启动性能测试
+    if runtime.user_test_count() > 0:
+        raise HTTPException(status_code=400, detail="账号认证测试正在运行，请先停止后再启动性能测试")
 
     server_name = str(payload.get("server_name") or "").strip()
     if not server_name:
@@ -187,8 +199,14 @@ async def start_task(payload: Dict[str, Any]):
         "accounting_message_authenticator": bool(
             config["test"].get("accounting_message_authenticator")),
         "packet_trace_limit": int(config.get("log", {}).get("packet_trace_limit") or 0),
-        # 可选：Dot1X 接入配置，同时作用于认证与计费报文
-        "dot1x": _normalize_dot1x(payload.get("dot1x")),
+        # 可选：Dot1X 接入配置，同时作用于认证与计费报文。
+        # 任务级只补齐「设备级」默认值（NAS-Identifier / Connect-Info）；
+        # 端口与终端级字段（NAS-Port / NAS-Port-Id / 终端 MAC）留空时，
+        # 由 TestSession._user_dot1x 在派发给每个用户时按序号唯一生成，
+        # 两处都走 builder 的同一套口径，不存在各写一套字段白名单的情况。
+        "dot1x": radius_builder.resolve_device_fields(
+            _normalize_dot1x(payload.get("dot1x")),
+        ),
     }
     if options["online_criteria"] not in ("accounting", "auth"):
         raise HTTPException(status_code=400, detail="在线判定依据非法，可选 accounting / auth")
@@ -219,12 +237,42 @@ async def start_task(payload: Dict[str, Any]):
 
 
 @router.post("/heartbeat")
-async def heartbeat():
-    """前端心跳，用于维持测试存活状态。"""
-    session = runtime.get_session()
-    if session is not None:
-        session.heartbeat()
-    return {"success": True}
+async def heartbeat(payload: Optional[Dict[str, Any]] = None):
+    """
+    测试页面心跳，用于维持「前端仍停在测试页面」的存活状态。
+
+    请求体：
+        {"page": "perf" | "server" | 其他页面标识}
+
+    说明（需求5）：
+        只有测试页面（perf / Radius 用户测试 server）的会上报刷新存活时间；
+        上报的是非测试页面且此前有测试页面上报过，则视为已离开测试页面，
+        立即中断测试（PAGE_LEFT），不再等到超时。
+    """
+    page = str((payload or {}).get("page") or "")
+    outcome = page_liveness.report(page)
+    if outcome == "left":
+        await page_liveness.stop_all_tests(state_mod.PAGE_LEFT)
+    return {"success": True, "page": page, "alive": outcome != "left"}
+
+
+@router.post("/leave")
+async def leave(payload: Optional[Dict[str, Any]] = None):
+    """
+    测试页面离开通知：立即中断测试（需求5）。
+
+    请求体：
+        {"page": "result"}
+
+    说明：
+        用于前端在应用内跳转离开测试页面时主动声明，
+        与心跳上报非测试页面效果一致；无测试在跑时为空操作。
+    """
+    page = str((payload or {}).get("page") or "")
+    if page_liveness.activated():
+        page_liveness.mark_left(page)
+        await page_liveness.stop_all_tests(state_mod.PAGE_LEFT)
+    return {"success": True, "page": page}
 
 
 @router.post("/{task_id}/stop")

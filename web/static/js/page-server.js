@@ -346,9 +346,9 @@
         protoField.appendChild(protoLabel);
         protoField.appendChild(protoSelect);
 
-        // Dot1X 接入配置（接入类型 / SSID / NAS-Port / NAS-Port-Id / 终端 MAC / 常用参数）
-        // 由公共助手统一生成，与用户列表页的两个入口共用同一套字段与取值口径。
-        // 留空字段：NAS-Port 与终端 MAC 由后端按每个用户随机生成，其余可选项不发送。
+        // Dot1X 接入配置（接入类型 / SSID / NAS-Port / NAS-Port-Id / 终端 MAC / NAS-Identifier / Connect-Info）
+        // 由公共助手统一生成，与用户列表页、性能测试页共用同一套字段与取值口径。
+        // 字段全部可自定义；留空由后端生成默认合法值并发送，不存在「留空不发送」。
         var dot1xPanel = global.RtDot1x.createPanel('app-usertest');
 
         var resultBox = document.createElement('div');
@@ -417,6 +417,10 @@
                 resultBox.appendChild(item);
               });
               resultWrap.hidden = false;
+              // 账号认证测试保持在线：登记到状态条，供「停止测试」使用
+              if (global.RtUserTest) {
+                global.RtUserTest.add(r, server.name);
+              }
             });
           }, event);
         });

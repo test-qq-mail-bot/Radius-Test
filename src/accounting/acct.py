@@ -22,47 +22,9 @@ import time
 from typing import Dict, Optional
 
 from ..logging import logger
-
-
-class OnlineSession:
-    """
-    单个在线会话。
-
-    属性：
-        username: 用户名
-        server_name: RADIUS Server 名称
-        session_id: 计费会话 ID
-        start_time: 上线时间戳（秒）
-        interim_fail_count: 连续 Interim-Update 失败次数
-        last_interim_time: 上次发送 Interim-Update 的时间戳
-        offline: 是否已掉线
-        dot1x: 该会话使用的 Dot1X 接入配置（与认证报文同一份），
-            供后台 Interim-Update 复用，保证认证与计费报文属性一致
-    """
-
-    __slots__ = ("username", "server_name", "session_id", "start_time",
-                 "interim_fail_count", "last_interim_time", "offline",
-                 "protocol", "task_id", "interim_disabled",
-                 "has_dropped", "offline_start_time", "dot1x")
-
-    def __init__(self, username: str, server_name: str, session_id: str,
-                 protocol: str = "", task_id: str = "",
-                 interim_disabled: bool = False, dot1x: dict = None):
-        self.username = username
-        self.server_name = server_name
-        self.session_id = session_id
-        self.protocol = protocol
-        self.task_id = task_id
-        # True 表示该会话不参与 Interim-Update 掉线判定
-        # （用于「认证成功即在线」口径下计费未上线的会话）
-        self.interim_disabled = interim_disabled
-        self.dot1x = dot1x
-        self.start_time = time.time()
-        self.interim_fail_count = 0
-        self.last_interim_time = self.start_time
-        self.offline = False
-        self.has_dropped = False
-        self.offline_start_time = 0.0
+# 会话实体已拆到兄弟模块（单文件 ≤20KB 约束）：本模块只保留管理器。
+# 顶部导入即再导出，`acct_mod.OnlineSession` 的既有导入路径保持可用。
+from .model import OnlineSession
 
 
 class OnlineSessionManager:
@@ -76,7 +38,8 @@ class OnlineSessionManager:
     """
 
     def __init__(self, client, interim_interval: int = 60, interim_max_fail: int = 3,
-                 accounting_timeout: float = 0.0, accounting_retry_count: int = 0):
+                 accounting_timeout: float = 0.0, accounting_retry_count: int = 0,
+                 save_packets: bool = False):
         self._client = client
         self._interval = max(0, int(interim_interval))
         self._max_fail = max(1, int(interim_max_fail))
@@ -85,6 +48,8 @@ class OnlineSessionManager:
         # 掉线判定在常规测试窗口内几乎无法触发（需求3 实机暴露的缺陷）。
         self._acct_timeout = float(accounting_timeout or 0.0)
         self._acct_retry = int(accounting_retry_count or 0)
+        # 是否落库计费报文（Start/Interim/Stop），用于详情页聚合展示（需求4）
+        self._save_packets = bool(save_packets)
         self._sessions: Dict[str, OnlineSession] = {}
         self._lock = asyncio.Lock()
         self._runner_task: Optional[asyncio.Task] = None
@@ -113,18 +78,14 @@ class OnlineSessionManager:
     @property
     def total_drop_duration(self) -> float:
         """
-        累计掉线时长（秒）。
+        累计「掉线前的在线时长」（秒，需求2 口径）。
 
-        已恢复的掉线在恢复时结算；尚未恢复的会话（含被服务端强制下线后一直未恢复）
-        按「已离线时长」实时计入，避免平均掉线时长恒为 0。
+        每次判定掉线（Interim 连续失败或服务端强制下线）时，把该会话
+        start_time -> offline_start_time 的在线时长累加进来；
+        恢复后不再累加离线时长。因此该值表示用户掉线前「平均保持了多久在线」，
+        已恢复或仍离线的会话都不额外计入。
         """
-        now = time.time()
-        pending = sum(
-            max(0.0, now - s.offline_start_time)
-            for s in self._sessions.values()
-            if s.offline and s.offline_start_time
-        )
-        return self._total_drop_duration + pending
+        return self._total_drop_duration
 
     @property
     def dropped_user_count(self) -> int:
@@ -144,6 +105,16 @@ class OnlineSessionManager:
         """更新 Interim-Update 参数。"""
         self._interval = max(0, int(interim_interval))
         self._max_fail = max(1, int(interim_max_fail))
+
+    def set_save_packets(self, flag: bool) -> None:
+        """
+        动态更新「是否落库计费报文」。
+
+        单用户测试管理器是进程级单例，创建后长期驻留；配置（保存报文）
+        可在运行期变更，因此每次发起测试前都需按最新配置刷新该开关，
+        否则会出现「Start 报文落库、Stop 报文不落库」的不一致（实测缺陷）。
+        """
+        self._save_packets = bool(flag)
 
     async def mark_forced_offline(self, session_id: str = "",
                                   username: str = "") -> Optional[OnlineSession]:
@@ -174,10 +145,16 @@ class OnlineSessionManager:
                 target.offline_start_time = time.time()
                 target.has_dropped = True
                 self._drop_count += 1
+                # 结算「掉线前在线时长」：start_time -> offline_start_time
+                online_duration = target.offline_start_time - target.start_time
+                if online_duration < 0:
+                    online_duration = 0.0
+                self._total_drop_duration += online_duration
                 logger.info("accounting", "服务端强制下线：会话已判定掉线", {
                     "username": target.username,
                     "session_id": target.session_id,
                     "server": target.server_name,
+                    "online_duration_s": round(online_duration, 3),
                 })
             else:
                 logger.info("accounting", "服务端强制下线：该会话此前已掉线", {
@@ -220,6 +197,23 @@ class OnlineSessionManager:
                 pass
             self._runner_task = None
 
+    def _save_acct_packet(self, session: "OnlineSession", result,
+                           status_type: int) -> None:
+        """
+        落库一次计费报文（Interim/Stop），失败静默忽略，不阻断主流程（需求4）。
+
+        仅 when self._save_packets 开启；请求报文即使无响应也会保留，便于排查。
+        """
+        if not self._save_packets or result is None:
+            return
+        try:
+            from ..testing import packets as packets_mod
+            packets_mod.save_accounting(session.task_id, session.username,
+                                        session.server_name, result, status_type)
+        except Exception as exc:
+            logger.debug("accounting", "计费报文落库失败（已忽略）",
+                         {"username": session.username, "error": str(exc)})
+
     async def _run(self) -> None:
         """
         后台循环。
@@ -255,12 +249,10 @@ class OnlineSessionManager:
                         dot1x=session.dot1x,
                     )
                     if result.success:
-                        # Interim 恢复成功：若此前处于掉线状态，记一次掉线时长并恢复在线
+                        # Interim 恢复成功：恢复在线；「掉线前在线时长」已在掉线瞬间计入，
+                        # 此处不再累加离线时长（需求2 口径）。
+                        self._save_acct_packet(session, result, 3)
                         if session.offline:
-                            duration = time.time() - session.offline_start_time
-                            if duration < 0:
-                                duration = 0.0
-                            self._total_drop_duration += duration
                             session.offline = False
                             session.offline_start_time = 0.0
                             session.has_dropped = True
@@ -268,7 +260,6 @@ class OnlineSessionManager:
                                 "username": session.username,
                                 "session_id": session.session_id,
                                 "server": session.server_name,
-                                "drop_duration_s": round(duration, 3),
                             })
                         session.interim_fail_count = 0
                     else:
@@ -290,12 +281,17 @@ class OnlineSessionManager:
                         "max_fail": self._max_fail,
                     })
                 session.last_interim_time = time.time()
-                # 首次判定掉线：累计次数并记录掉线起始时刻（恢复后重新计时）
+                # 首次判定掉线：累计次数、记录掉线起始时刻，并结算「掉线前在线时长」
                 if session.interim_fail_count >= self._max_fail and not session.offline:
                     session.offline = True
                     session.offline_start_time = time.time()
                     session.has_dropped = True
                     self._drop_count += 1
+                    # 结算「掉线前在线时长」：start_time -> offline_start_time
+                    online_duration = session.offline_start_time - session.start_time
+                    if online_duration < 0:
+                        online_duration = 0.0
+                    self._total_drop_duration += online_duration
                     logger.info("accounting", "判定掉线：Interim-Update 连续失败达到阈值", {
                         "username": session.username,
                         "session_id": session.session_id,
@@ -303,6 +299,7 @@ class OnlineSessionManager:
                         "fail_count": session.interim_fail_count,
                         "max_fail": self._max_fail,
                         "window_s": self._interval * self._max_fail,
+                        "online_duration_s": round(online_duration, 3),
                     })
 
     async def _resolve_server(self, server_name: str):
@@ -313,6 +310,36 @@ class OnlineSessionManager:
             if server.get("name") == server_name:
                 return server
         return None
+
+    async def stop_session(self, session_id: str) -> bool:
+        """
+        对指定会话发送 Accounting-Stop 并移除，返回是否命中该会话。
+
+        用于单用户账号认证测试的「重新测试」场景：同一用户再次点击测试时，
+        先停掉上一次仍保持的在线会话，避免旧会话无限期发送 Interim-Update。
+        """
+        session = self.get(session_id)
+        if session is None:
+            return False
+        try:
+            server = await self._resolve_server(session.server_name)
+            if server is not None:
+                result = await self._client.send_accounting(
+                    server,
+                    session.username,
+                    2,  # Stop
+                    session_id=session.session_id,
+                    session_time=int(time.time() - session.start_time),
+                    dot1x=session.dot1x,
+                )
+                self._save_acct_packet(session, result, 2)
+        except Exception as exc:
+            logger.debug("accounting", "单会话 Accounting-Stop 失败（已忽略）", {
+                "session_id": session_id, "error": str(exc),
+            })
+        finally:
+            await self.remove(session_id)
+        return True
 
     async def stop_all(self) -> int:
         """
@@ -362,6 +389,7 @@ class OnlineSessionManager:
                     session_time=int(time.time() - session.start_time),
                     dot1x=session.dot1x,
                 )
+                self._save_acct_packet(session, result, 2)
                 if not result.success:
                     record_failure(getattr(result, "error", "") or "服务器未返回成功响应")
                 return bool(result.success)

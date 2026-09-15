@@ -6,6 +6,51 @@
   var currentPage = 'home';
   var refreshHandler = null;
 
+  /* 测试页面集合：只有停在这些页面上时，测试才允许继续运行（需求5）。
+     与后端 src/web/page_liveness.py 的 TEST_PAGES 保持一致。 */
+  var TEST_PAGES = ['perf', 'server'];
+  /* 测试页面心跳间隔，与后端 HEARTBEAT_INTERVAL 保持一致 */
+  var PAGE_HEARTBEAT_INTERVAL = 2000;
+  var pageHeartbeatTimer = null;
+  var heartbeatPage = '';
+
+  /* 停止测试页面心跳；leftPage 有值时一并向后端声明「已离开测试页面」，
+     后端收到后立即中断测试，不等心跳超时。 */
+  function stopPageHeartbeat(leftPage) {
+    if (pageHeartbeatTimer) {
+      clearInterval(pageHeartbeatTimer);
+      pageHeartbeatTimer = null;
+    }
+    heartbeatPage = '';
+    if (leftPage && global.RtApi && global.RtApi.pageLeave) {
+      global.RtApi.pageLeave(leftPage).catch(function () { /* 失败由心跳超时兜底 */ });
+    }
+  }
+
+  /* 每次进入页面时同步心跳：
+     测试页面 -> 立即上报一次并启动 2 秒周期心跳；
+     非测试页面 -> 停表，若此前停在测试页面则立即上报离开。
+     注意：不监听 visibilitychange / blur，窗口切到后台不算离开。 */
+  function syncPageHeartbeat(page) {
+    if (TEST_PAGES.indexOf(page) >= 0) {
+      if (pageHeartbeatTimer) {
+        clearInterval(pageHeartbeatTimer);
+        pageHeartbeatTimer = null;
+      }
+      heartbeatPage = page;
+      var beat = function () {
+        if (!heartbeatPage || !global.RtApi) {
+          return;
+        }
+        global.RtApi.heartbeat(heartbeatPage).catch(function () { /* 超时兜底 */ });
+      };
+      beat();
+      pageHeartbeatTimer = setInterval(beat, PAGE_HEARTBEAT_INTERVAL);
+      return;
+    }
+    stopPageHeartbeat(heartbeatPage);
+  }
+
   /* 已分配过的 id 集合。
      只用 document.getElementById 判重是不够的：尚未插入文档的元素
      （如先建后挂的卡片、弹窗内容）查不到，会出现重名。
@@ -28,15 +73,16 @@
      账号认证测试（Server 列表单用户测试 / 用户列表单个与批量测试）统一使用，
      避免各页面各写一份、字段名不一致。
 
-     约定：
+     约定（2026-09-15 用户确认的口径）：
        - 接入类型默认「有线」；
        - SSID 仅无线使用，留空由后端置为 Radius-Test；
-       - NAS PORT ID 与终端 MAC 留空时由后端按「每个用户各自随机」生成合法值，
-         填写则全部被测用户共用该固定值。 */
+       - 其余字段（NAS-Port / NAS-Port-Id / 终端 MAC / NAS-Identifier / Connect-Info）
+         **全部可自定义；留空时由后端生成默认合法值并发送出去，不存在「留空不发送」**；
+       - NAS-Port(5) 是端口号（数值），NAS-Port-Id(87) 是端口名称（字符串），二者互不相干。 */
   var Dot1x = {
     /* 构造传给后端的 dot1x 参数。
-       入参为 createPanel() 返回的字段对象；留空字段传空串，
-       交后端按用户随机生成（NAS-Port / 终端 MAC）或直接不发送（其余可选项）。 */
+       入参为 createPanel() 返回的字段对象；留空字段一律传空串，
+       由后端 builder.resolve_dot1x() 统一补齐默认合法值。 */
     build: function (fields) {
       fields = fields || {};
       function val(key) {
@@ -60,10 +106,10 @@
     accessOptions: function () {
       return [['wired', '有线'], ['wireless', '无线']];
     },
-    /* Service-Type(6) 选项：[值, 显示文本]；空值表示不发送该属性。 */
+    /* Service-Type(6) 选项：[值, 显示文本]；空值表示由后端随机生成合法值。 */
     serviceOptions: function () {
       return [
-        ['', '不发送'],
+        ['', '随机生成'],
         ['1', 'Login (1)'],
         ['2', 'Framed (2)'],
         ['3', 'Callback-Login (3)'],
@@ -99,9 +145,13 @@
          accessType / ssid / nasPort / nasPortId / mac /
          nasIdentifier / serviceType / framedIp / connectInfo
        说明：NAS-Port(5) 是端口号（数值），NAS-Port-Id(87) 是端口名称（字符串），
-       二者语义不同，因此拆成两个独立输入框。 */
-    createPanel: function (prefix) {
+       二者语义不同，因此拆成两个独立输入框。
+       exclude：需要隐藏的字段键名数组（通用能力，当前三个测试入口都不排除任何字段，
+         面板字段完全一致：接入类型 / SSID / NAS-Port / NAS-Port-Id / 终端 MAC /
+         NAS-Identifier / Service-Type / Framed-IP-Address / Connect-Info）。 */
+    createPanel: function (prefix, exclude) {
       prefix = String(prefix || 'app-dot1x');
+      var excludes = exclude || [];
 
       function textField(hint) {
         var input = document.createElement('input');
@@ -140,14 +190,14 @@
       var fields = {
         accessType: Dot1x.createAccessSelect(uid(prefix + '-accesstype')),
         ssid: textField('Radius-Test'),
-        nasPort: textField('留空则每个用户随机'),
+        nasPort: textField('留空则默认生成'),
         nasPortId: textField('如 GigabitEthernet0/0/1'),
-        mac: textField('留空则每个用户随机'),
-        nasIdentifier: textField('NAS 名称，留空不发送'),
+        mac: textField('留空则默认生成'),
+        nasIdentifier: textField('如 nas-1a2b'),
         serviceType: Dot1x.createSelect(uid(prefix + '-servicetype'),
           Dot1x.serviceOptions(), ''),
-        framedIp: textField('留空不发送'),
-        connectInfo: textField('留空不发送')
+        framedIp: textField('如 10.0.0.1；留空则默认生成'),
+        connectInfo: textField('留空则默认生成')
       };
       fields.ssid.id = uid(prefix + '-ssid');
       fields.nasPort.id = uid(prefix + '-nasport');
@@ -157,7 +207,7 @@
       fields.framedIp.id = uid(prefix + '-framedip');
       fields.connectInfo.id = uid(prefix + '-connectinfo');
 
-      var ssidBox = field('SSID（无线）', fields.ssid);
+      var ssidBox = field('SSID（无线）', fields.ssid, '仅无线接入使用；留空默认为 Radius-Test');
       function syncSsid() {
         var wireless = fields.accessType.value === 'wireless';
         fields.ssid.disabled = !wireless;
@@ -173,17 +223,24 @@
 
       var rowB = row();
       rowB.appendChild(field('NAS-Port（端口号，数值）', fields.nasPort,
-        '属性 5；留空则按用户序号唯一分配'));
+        '属性 5；留空则默认生成合法值'));
       rowB.appendChild(field('NAS-Port-Id（端口名称，字符串）', fields.nasPortId,
-        '属性 87；留空则不发送'));
-      rowB.appendChild(field('终端 MAC', fields.mac, '属性 31；留空则每个用户随机'));
+        '属性 87；留空则默认生成合法值'));
+      rowB.appendChild(field('终端 MAC', fields.mac, '属性 31；留空则默认生成合法值'));
       panel.appendChild(rowB);
 
       var rowC = row();
-      rowC.appendChild(field('NAS-Identifier', fields.nasIdentifier, '属性 32；留空不发送'));
-      rowC.appendChild(field('Service-Type', fields.serviceType, '属性 6；留空不发送'));
-      rowC.appendChild(field('Framed-IP-Address', fields.framedIp, '属性 8；留空不发送'));
-      rowC.appendChild(field('Connect-Info', fields.connectInfo, '属性 77；留空不发送'));
+      rowC.appendChild(field('NAS-Identifier', fields.nasIdentifier,
+        '属性 32；留空则默认生成合法值'));
+      if (excludes.indexOf('serviceType') < 0) {
+        rowC.appendChild(field('Service-Type', fields.serviceType, '属性 6；留空则默认生成合法值'));
+      }
+      if (excludes.indexOf('framedIp') < 0) {
+        rowC.appendChild(field('Framed-IP-Address', fields.framedIp, '属性 8；留空则默认生成合法值'));
+      }
+      // Connect-Info(77)：留空由后端生成默认合法值
+      rowC.appendChild(field('Connect-Info', fields.connectInfo,
+        '属性 77；留空则默认生成合法值'));
       panel.appendChild(rowC);
 
       return { element: panel, fields: fields };
@@ -587,6 +644,25 @@
       refreshHandler = handler;
     },
 
+    /* 让整块 .app-checkbox-row 可点击切换勾选态（不只点小框）。
+       行内只有一个复选框 + 标签时安全；点击复选框本身由浏览器原生处理，避免重复切换。 */
+    bindCheckboxRows: function (container) {
+      if (!container) return;
+      var rows = container.querySelectorAll('.app-checkbox-row');
+      Array.prototype.forEach.call(rows, function (row) {
+        if (row._checkboxRowBound) return;
+        row._checkboxRowBound = true;
+        row.addEventListener('click', function (event) {
+          var cb = row.querySelector('input[type="checkbox"]');
+          if (!cb || event.target === cb) return;
+          cb.checked = !cb.checked;
+          var ev = document.createEvent('HTMLEvents');
+          ev.initEvent('change', true, true);
+          cb.dispatchEvent(ev);
+        });
+      });
+    },
+
     /* 表单校验工具：
      *   - rules：内置规则（required / host / port / positive）
      *   - runRules(rules, value, label)：按顺序跑规则，返回首个错误信息或 null
@@ -738,6 +814,118 @@
 
   global.RtUI = UI;
 
+  /* 账号认证测试（保持在线）状态条。
+   * 需求3/5：所有账号认证测试点击后保持用户在线；点「停止测试」或前端断开时取消。
+   * 由用户列表「测试/批量测试」与 Server「Radius 用户测试」共同登记在线会话。 */
+  var UserTest = (function () {
+    var active = [];
+    var banner = null;
+    var textNode = null;
+
+    function ensureBanner() {
+      if (banner) {
+        return banner;
+      }
+      banner = document.createElement('div');
+      banner.id = 'app-usertest-banner';
+      banner.className = 'app-usertest-banner';
+      banner.hidden = true;
+      textNode = document.createElement('span');
+      textNode.id = 'app-usertest-banner-text';
+      textNode.className = 'app-usertest-banner-text';
+      var stopBtn = document.createElement('button');
+      stopBtn.id = 'app-usertest-banner-stop';
+      stopBtn.className = 'app-button app-button-danger app-button-sm';
+      stopBtn.type = 'button';
+      stopBtn.textContent = '停止测试';
+      stopBtn.addEventListener('click', function () {
+        UI.confirm('停止账号认证测试', '确认停止全部账号认证测试并发送 Accounting-Stop？')
+          .then(function (confirmed) {
+            if (!confirmed) {
+              return null;
+            }
+            return stopAll();
+          });
+      });
+      banner.appendChild(textNode);
+      banner.appendChild(stopBtn);
+      document.body.appendChild(banner);
+      return banner;
+    }
+
+    function render() {
+      var node = ensureBanner();
+      if (!active.length) {
+        node.hidden = true;
+        textNode.textContent = '';
+        return;
+      }
+      node.hidden = false;
+      var names = active.map(function (item) { return item.username; })
+        .filter(function (name) { return !!name; });
+      var shown = names.slice(0, 5).join('、');
+      if (names.length > 5) {
+        shown += ' 等';
+      }
+      textNode.textContent = '账号认证测试进行中（保持在线）：' + active.length + ' 个会话'
+        + (shown ? '（' + shown + '）' : '');
+    }
+
+    function add(result, serverName) {
+      if (!result || !result.online || !result.session_id) {
+        return;
+      }
+      var exists = active.some(function (item) {
+        return item.session_id === result.session_id;
+      });
+      if (exists) {
+        return;
+      }
+      active.push({
+        session_id: result.session_id,
+        task_id: result.task_id,
+        username: result.username || '',
+        server: serverName || result.server || ''
+      });
+      render();
+    }
+
+    function trackAll(results, serverName) {
+      (results || []).forEach(function (item) {
+        add(item, serverName);
+      });
+      render();
+    }
+
+    function stopAll() {
+      return global.RtApi.userTestStop().then(function (res) {
+        var stopped = (res && res.stopped) || 0;
+        active = [];
+        render();
+        UI.toast('已停止账号认证测试（Accounting-Stop × ' + stopped + '）', 'success');
+        return res;
+      }, function (error) {
+        UI.toast('停止失败：' + (error && error.message ? error.message : error), 'error');
+        throw error;
+      });
+    }
+
+    function clear() {
+      active = [];
+      render();
+    }
+
+    return {
+      add: add,
+      trackAll: trackAll,
+      stopAll: stopAll,
+      clear: clear,
+      count: function () { return active.length; }
+    };
+  })();
+
+  global.RtUserTest = UserTest;
+
   function setActiveNav(page) {
     Array.prototype.forEach.call(document.querySelectorAll('.app-nav-item'), function (item) {
       if (item.dataset.page === page) {
@@ -758,6 +946,9 @@
       module = global.RtPages.home;
     }
     currentPage = page;
+    // 页面级心跳：测试是否继续，只取决于前端是否仍停在测试页面（需求5）。
+    // 离开测试页面即通知后端立即中断测试；窗口切到后台不算离开。
+    syncPageHeartbeat(page);
     if (global.RtDebug) {
       global.RtDebug.setPage(page);
     }

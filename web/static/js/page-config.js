@@ -347,6 +347,9 @@
         });
       }
 
+      // 整块勾选行可点击切换（Req1：不只点小框）
+      global.RtUI.bindCheckboxRows(container);
+
       global.RtUI.bindRefresh(load);
       return load();
     }

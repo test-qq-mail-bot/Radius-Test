@@ -12,6 +12,11 @@
     总请求数、成功数、失败数、超时数、取消数、当前在线数、
     成功率、失败率、最大响应时间、最小响应时间。
     不使用 P95 / P99。
+
+存活判据（需求5）：
+    本模块不再自行判断前端存活。测试是否继续，统一由
+    web.page_liveness（测试页面心跳看门狗）判定并调用 stop()，
+    避免「浏览器连接心跳」与「测试页面心跳」两套判据并存导致行为不可预期。
 """
 
 import asyncio
@@ -31,10 +36,6 @@ from ..radius.client import RadiusClient
 from . import snapshot as snapshot_mod
 from . import state as state_mod
 from . import task as task_mod
-
-# 心跳超时：2 秒 × 3 次 ≈ 6 秒（项目书 16.1）
-HEARTBEAT_INTERVAL = 2.0
-HEARTBEAT_MAX_FAIL = 3
 
 
 class TestSession:
@@ -63,6 +64,7 @@ class TestSession:
             int(self.options.get("interim_max_fail") or 3),
             float(self.options.get("accounting_timeout") or 0.0),
             int(self.options.get("accounting_retry_count") or 0),
+            bool(self.options.get("save_packets")),
         )
         self.status = state_mod.PENDING
         self.stop_reason = ""
@@ -125,7 +127,7 @@ class TestSession:
             return
         self.status = state_mod.RUNNING
         self.started_at = time.time()
-        self._heartbeat_ok = time.monotonic()
+        self._start_time_text = time_util.format_log_time()
         self._stop_event.clear()
         # 报文收发明细限流：DEBUG 级压测时避免日志风暴
         trace.set_limit(int(self.options.get("packet_trace_limit") or 0))
@@ -234,9 +236,6 @@ class TestSession:
         push_deadline = time.monotonic()
         try:
             while not self._stop_event.is_set():
-                if self.heartbeat_expired():
-                    await self.stop(state_mod.HEARTBEAT_TIMEOUT)
-                    return
                 # 已在线的用户不再重复登录：在线数上限即用户数，掉线后可重新登录
                 online_names = self._online.online_usernames()
                 picked = None
@@ -293,17 +292,19 @@ class TestSession:
         """
         为单个用户生成 Dot1X 接入配置。
 
-        - 未配置 Dot1X 时返回 None，沿用报文构造的原硬编码属性；
-        - NAS-Port 留空时按序号唯一分配（1000 起，封顶 65535），
-          其余字段在全部用户间保持一致；
-        - 用户填写了 NAS-Port 时按填写值使用。
+        统一走 builder.resolve_port_fields()——端口/终端级字段
+        （NAS-Port(5)、NAS-Port-Id(87)、终端 MAC(31)）留空时按用户序号唯一生成，
+        避免多用户取值碰撞导致服务端把不同会话串成一条；
+        设备级字段（NAS-Identifier、Connect-Info）由任务模板统一提供，
+        保证同一台 NAS 的全部用户标识一致。
+
+        未配置 Dot1X 时返回 None，沿用报文构造的原硬编码属性（向后兼容）。
         """
         if not template:
             return None
-        config = dict(template)
-        if not str(config.get("nas_port") or "").strip() and index is not None:
-            config["nas_port"] = min(1000 + int(index), 65535)
-        return config
+        from ..radius import builder as radius_builder
+
+        return radius_builder.resolve_port_fields(template, index)
 
     async def _execute(self, server: dict, username: str, password: str,
                        save_packets: bool, enable_accounting: bool,
@@ -392,8 +393,7 @@ class TestSession:
         self.status = state_mod.ABORTED if self.stop_reason else state_mod.SUCCESS
         dao.save_session({
             "task_id": self.task_id,
-            "start_time": time_util.format_display(
-                time_util.now()) if not self.started_at else "",
+            "start_time": self._start_time_text or time_util.format_log_time(),
             "end_time": time_util.format_log_time(),
             "server": self.server_name,
             "protocol": self.protocol,

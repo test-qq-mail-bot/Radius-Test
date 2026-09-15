@@ -450,20 +450,17 @@ def get_result_detail(result_id: int) -> Optional[Dict[str, Any]]:
     if row is None:
         return None
     detail = dict(row)
-    # 仅保留该用户最新的认证报文（请求 + 响应），用于「认证发起、认证成功获取属性」链路，
-    # 不保留历史报文（性能测试反复登录会产生大量历史，详情页只需最新一次）。
+    # 返回该用户在本任务中的全部 RADIUS 报文（含计费 Start / Interim / Stop），
+    # 按时间顺序（id 递增）排列，供前端按类型聚合折叠展示（需求4）。
+    cursor = connection.execute(
+        "SELECT id, packet_type, packet_time, raw_packet, parse_status, parse_error "
+        "FROM radius_packets WHERE task_id = ? AND username = ? ORDER BY id ASC",
+        (detail["task_id"], detail["username"]),
+    )
+    packet_rows = cursor.fetchall()
+    cursor.close()
     packets = []
-    for direction in ("request-Access-%", "response-Access-%"):
-        cursor = connection.execute(
-            "SELECT id, packet_type, packet_time, raw_packet, parse_status, parse_error "
-            "FROM radius_packets WHERE task_id = ? AND username = ? "
-            "AND packet_type LIKE ? ORDER BY id DESC LIMIT 1",
-            (detail["task_id"], detail["username"], direction),
-        )
-        row = cursor.fetchone()
-        cursor.close()
-        if row is None:
-            continue
+    for row in packet_rows:
         packet = dict(row)
         cursor = connection.execute(
             "SELECT attribute_id, radius_template, name, name_zh, type, value, vendor_id "
@@ -521,6 +518,35 @@ def get_session(task_id: str) -> Optional[Dict[str, Any]]:
     row = cursor.fetchone()
     cursor.close()
     return dict(row) if row else None
+
+
+def delete_packets_by_type(task_id: str, username: str, packet_type: str) -> None:
+    """
+    删除某任务下某用户指定类型的报文（含其属性）。
+
+    说明：
+        用于「报文落库即合并」——同一任务 + 用户下，同 packet_type 的报文
+        只保留最新一条，避免性能测试期间 Interim-Update 反复刷新把详情页
+        堆满重复报文（需求2）。
+        删除与随后的写入共用同一条异步队列（FIFO），
+        天然保证「先删旧、再写新」的顺序。
+
+    参数：
+        task_id: 测试任务 ID
+        username: 用户名
+        packet_type: 报文类型，如 request-Accounting-Interim
+    """
+    writer = _get_writer()
+    writer.submit(
+        "DELETE FROM radius_attributes WHERE packet_id IN "
+        "(SELECT id FROM radius_packets WHERE task_id = ? AND username = ? AND packet_type = ?)",
+        (task_id, username, packet_type),
+    )
+    writer.submit(
+        "DELETE FROM radius_packets "
+        "WHERE task_id = ? AND username = ? AND packet_type = ?",
+        (task_id, username, packet_type),
+    )
 
 
 def delete_single_test(username: str) -> None:

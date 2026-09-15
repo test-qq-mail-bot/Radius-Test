@@ -27,7 +27,6 @@ from ..common import time_util
 from ..common import uuid_util
 from ..database import dao
 from ..logging import logger
-from ..parser import packet_parser
 from . import packets as packets_mod
 from . import state as state_mod
 
@@ -140,13 +139,9 @@ async def run_user_task(client, server: dict, username: str, password: str,
 
         outcome.response_time = result.response_time_ms
 
-        # 报文解析与保存
+        # 报文解析与保存（属性模板匹配由落库层 testing.packets 统一补齐）
         request_packet = result.request_packet
         response_packet = result.response_packet
-        if request_packet is not None:
-            packet_parser.enrich(request_packet)
-        if response_packet is not None:
-            packet_parser.enrich(response_packet)
 
         if save_packets:
             packets_mod.save_packets(task_id, username, server_name,
@@ -197,6 +192,12 @@ async def run_user_task(client, server: dict, username: str, password: str,
         outcome.acct_ok = succeeded
         if not succeeded and not outcome.acct_error:
             outcome.acct_error = _accounting_failure_text(server, acct_result)
+
+        # 计费上线报文（含计费失败时仅有的 request 报文）一并落库，
+        # 使详情页能展示完整链路：认证 -> 计费 Start -> Interim-Update -> Stop（需求4）
+        if save_packets and acct_result is not None:
+            packets_mod.save_accounting(task_id, username, server_name,
+                                        acct_result, 1)
 
         if online_criteria == "auth":
             # 认证成功即在线：计费失败不阻断成败，仅记录提示

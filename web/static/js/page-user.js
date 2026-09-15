@@ -232,8 +232,9 @@
 
       // ---- Dot1X 接入配置（单个 / 批量账号认证测试共用，常显）----
       // 由公共助手统一生成：接入类型 / SSID / NAS-Port（端口号，属性5）/
-      // NAS-Port-Id（端口名称，属性87）/ 终端 MAC / 常用参数。
-      // 留空字段：NAS-Port 与终端 MAC 由后端按每个用户随机生成，其余可选项不发送。
+      // NAS-Port-Id（端口名称，属性87）/ 终端 MAC / NAS-Identifier / Service-Type /
+      // Framed-IP-Address / Connect-Info。三个测试入口字段完全一致。
+      // 字段全部可自定义；留空由后端生成默认合法值并发送，不存在「留空不发送」。
       var dot1xPanel = global.RtDot1x.createPanel('app-user-batch');
 
       function buildBatchDot1x() {
@@ -579,6 +580,8 @@
                 return global.RtApi.batchAuthTest(server, [row.username], protoSelect.value, buildBatchDot1x())
                   .then(function (data) {
                     showBatchTestResult(data.results || []);
+                    // 账号认证测试保持在线：登记到状态条，供「停止测试」使用
+                    global.RtUserTest.trackAll(data.results || [], server);
                   });
                 }, event);
               });
@@ -678,6 +681,8 @@
         return global.RtApi.batchAuthTest(server, usernames, protoSelect.value, buildBatchDot1x())
           .then(function (data) {
             showBatchTestResult(data.results || []);
+            // 账号认证测试保持在线：登记到状态条，供「停止测试」使用
+            global.RtUserTest.trackAll(data.results || [], server);
           });
         }, event);
       });

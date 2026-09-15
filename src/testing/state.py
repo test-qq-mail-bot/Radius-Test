@@ -3,7 +3,10 @@
 测试状态与停止原因定义模块。
 
 职责：
-    定义固定的 7 种测试状态与 8 类停止原因（项目书 15.1 / 15.2）。
+    定义固定的 7 种测试状态与 9 类停止原因（项目书 15.1 / 15.2）。
+
+    停止原因中的 PAGE_LEFT 为「测试页面存活判据」新增（需求5）：
+    前端在本应用内离开测试页面时立即中断测试。
 """
 
 # ---------------- 7 种测试状态 ----------------
@@ -17,10 +20,11 @@ ABORTED = "ABORTED"
 
 TEST_STATES = (PENDING, RUNNING, SUCCESS, FAILED, TIMEOUT, CANCELLED, ABORTED)
 
-# ---------------- 8 类停止原因 ----------------
+# ---------------- 9 类停止原因 ----------------
 USER_STOP = "USER_STOP"
 HEARTBEAT_TIMEOUT = "HEARTBEAT_TIMEOUT"
 BROWSER_DISCONNECTED = "BROWSER_DISCONNECTED"
+PAGE_LEFT = "PAGE_LEFT"
 RESOURCE_LIMIT = "RESOURCE_LIMIT"
 TASK_ERROR = "TASK_ERROR"
 CONFIG_ERROR = "CONFIG_ERROR"
@@ -31,6 +35,7 @@ STOP_REASONS = (
     USER_STOP,
     HEARTBEAT_TIMEOUT,
     BROWSER_DISCONNECTED,
+    PAGE_LEFT,
     RESOURCE_LIMIT,
     TASK_ERROR,
     CONFIG_ERROR,
@@ -41,8 +46,9 @@ STOP_REASONS = (
 # 停止原因中文说明，供页面展示
 STOP_REASON_TEXT = {
     USER_STOP: "用户手动停止",
-    HEARTBEAT_TIMEOUT: "心跳超时，前端失去响应",
+    HEARTBEAT_TIMEOUT: "测试页面心跳超时，页面已失联",
     BROWSER_DISCONNECTED: "浏览器断开连接",
+    PAGE_LEFT: "已离开测试页面，自动中断",
     RESOURCE_LIMIT: "达到任务数量上限，停止新增任务",
     TASK_ERROR: "测试任务执行异常",
     CONFIG_ERROR: "配置错误",

@@ -5,24 +5,20 @@ WebSocket 管理模块。
 职责：
     1. 管理前端 WebSocket 连接；
     2. 向全部连接推送实时测试数据；
-    3. 实现 2 秒心跳与「连续 3 次失败自动终止测试」保护；
-    4. 实现「前端全部断开超过宽限期自动终止测试」保护。
+    3. 实现 2 秒 ping/pong 保活，清理失联连接；
+    4. 连接断开后的自动重连由前端（ws.js）负责。
 
-保护原则（项目书 16.1）：
-    宁可提前停止测试，也不能在用户已经无法控制页面时继续产生大量 RADIUS 请求。
+范围界定（需求5，重要）：
+    本模块**不参与测试存活判定**。测试是否继续，唯一判据是
+    「前端是否仍停在测试页面」，由 web.page_liveness 判定：
+        - 测试页面每 2 秒上报一次存活；
+        - 应用内跳转到非测试页面立即中断测试（PAGE_LEFT）；
+        - 测试页面心跳超过 4 秒未上报立即中断（HEARTBEAT_TIMEOUT），
+          覆盖关闭标签页 / 关闭浏览器 / 断网等场景。
+    因此这里不再因为「WebSocket 连接断开」或「ping/pong 失败」去停止测试——
+    那会把「窗口切后台」「刷新页面」等正常操作误判为离开页面。
 
-实现：
-    后端每 2 秒向前端发送一次 ping，
-    前端收到后立即回复 pong，
-    后端连续 3 次（约 6 秒）未收到 pong 即终止当前测试（HEARTBEAT_TIMEOUT）。
-
-    页面关闭或刷新时 WebSocket 会断开，此时连接从集合中移除，
-    心跳监控将无人可监，因此额外增加「全部连接断开」判定：
-    曾经连上过、且连续 DISCONNECT_GRACE 秒没有任何连接时，
-    判定浏览器已断开并终止测试（BROWSER_DISCONNECTED）。
-    宽限期用于兼容页面刷新场景（断开后通常在 1 秒内重新连上）。
-
-    仅通过接口启动测试、从未打开页面的场景不会触发该保护。
+    连接失联时仅把该连接从集合中移除，等待前端重连。
 """
 
 import asyncio
@@ -30,20 +26,14 @@ import json
 import time
 from typing import Optional, Set
 
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket
 
 from ..logging import logger
 
-# 心跳间隔（秒）
+# 连接保活间隔（秒）
 HEARTBEAT_INTERVAL = 2.0
-# 连续失败次数上限
+# 连续失败次数上限，达到即判定该连接已失联并移除
 HEARTBEAT_MAX_FAIL = 3
-# 全部连接断开后的宽限时间（秒），超时判定浏览器已断开。
-# 必须小于会话自身的心跳超时（HEARTBEAT_INTERVAL * HEARTBEAT_MAX_FAIL = 6 秒），
-# 否则页面关闭场景会先被会话心跳超时判定为 HEARTBEAT_TIMEOUT，
-# 导致 BROWSER_DISCONNECTED 原因永远不会出现。
-# 取 3 秒：页面刷新时新页面通常在 1 秒内重新连上，不会被误判。
-DISCONNECT_GRACE = 3.0
 
 
 class WebSocketManager:
@@ -51,7 +41,7 @@ class WebSocketManager:
     WebSocket 连接管理器。
 
     参数：
-        session_provider: 无参回调，返回当前测试会话对象或 None
+        session_provider: 无参回调，返回当前测试会话对象或 None（保留接口兼容）
     """
 
     def __init__(self, session_provider=None):
@@ -60,12 +50,7 @@ class WebSocketManager:
         self._monitor_task: Optional[asyncio.Task] = None
         self._last_seen: dict = {}
         self._fail_count: dict = {}
-        self._last_beat_sent = 0.0
         self._lock = asyncio.Lock()
-        # 是否曾经有页面连接（用于区分接口启动测试与页面启动测试）
-        self._had_connection = False
-        # 全部连接断开的起始时刻，None 表示当前有连接
-        self._no_connection_since: Optional[float] = None
 
     @property
     def connection_count(self) -> int:
@@ -79,8 +64,6 @@ class WebSocketManager:
             self._connections.add(websocket)
             self._last_seen[id(websocket)] = time.monotonic()
             self._fail_count[id(websocket)] = 0
-            self._had_connection = True
-            self._no_connection_since = None
         logger.debug("websocket", "前端已连接", {"total": self.connection_count})
         await self._send(websocket, {
             "type": "connected",
@@ -93,11 +76,6 @@ class WebSocketManager:
             self._connections.discard(websocket)
             self._last_seen.pop(id(websocket), None)
             self._fail_count.pop(id(websocket), None)
-            if not self._connections and self._had_connection:
-                if self._no_connection_since is None:
-                    self._no_connection_since = time.monotonic()
-            else:
-                self._no_connection_since = None
         logger.debug("websocket", "前端已断开", {"total": self.connection_count})
 
     async def broadcast(self, payload: dict) -> None:
@@ -121,16 +99,18 @@ class WebSocketManager:
         except Exception:
             await self.disconnect(websocket)
 
-    # ---------------- 心跳 ----------------
+    # ---------------- 心跳（仅用于连接保活） ----------------
 
     async def handle_message(self, websocket: WebSocket, text: str) -> None:
         """
         处理前端消息。
 
         支持：
-            {"type":"pong"}     心跳应答
+            {"type":"pong"}      心跳应答
             {"type":"heartbeat"} 前端主动心跳
-            {"type":"ping"}     前端探测
+            {"type":"ping"}      前端探测
+
+        说明：此处只维护连接活跃时间，不刷新任何测试存活状态。
         """
         key = id(websocket)
         try:
@@ -141,9 +121,6 @@ class WebSocketManager:
         if message_type in ("pong", "heartbeat"):
             self._last_seen[key] = time.monotonic()
             self._fail_count[key] = 0
-            session = self._session_provider() if self._session_provider else None
-            if session is not None:
-                session.heartbeat()
         elif message_type == "ping":
             await self._send(websocket, {"type": "pong", "data": {}})
 
@@ -165,13 +142,11 @@ class WebSocketManager:
 
     async def _monitor(self) -> None:
         """
-        心跳监控循环。
+        连接保活循环。
 
         每 HEARTBEAT_INTERVAL 秒向全部连接发送 ping，
-        并检查是否有连接连续多次未应答。
+        连续 HEARTBEAT_MAX_FAIL 次未应答即移除该连接（只清理连接，不停止测试）。
         """
-        from ..testing import state as state_mod
-
         while True:
             try:
                 await asyncio.sleep(HEARTBEAT_INTERVAL)
@@ -189,51 +164,17 @@ class WebSocketManager:
                     if self._fail_count.get(key, 0) >= HEARTBEAT_MAX_FAIL:
                         expired.append(key)
                 if expired:
-                    logger.warning("websocket", "心跳连续失败，判定前端失联", {
+                    logger.debug("websocket", "连接心跳无应答，移除连接", {
                         "count": len(expired),
                     })
-                    session = self._session_provider() if self._session_provider else None
-                    if session is not None and session.running:
-                        await session.stop(state_mod.HEARTBEAT_TIMEOUT)
-                    for key in expired:
-                        self._last_seen.pop(key, None)
-                        self._fail_count.pop(key, None)
-                await self._check_all_disconnected(now, state_mod)
+                    for websocket in list(self._connections):
+                        if id(websocket) in expired:
+                            await self.disconnect(websocket)
             except asyncio.CancelledError:
                 return
             except Exception as exc:
-                logger.error("websocket", "心跳监控异常", {"error": str(exc)}, exc_info=True)
+                logger.error("websocket", "连接保活监控异常", {"error": str(exc)}, exc_info=True)
                 await asyncio.sleep(1.0)
-
-    async def _check_all_disconnected(self, now: float, state_mod) -> None:
-        """
-        检查「全部页面已断开」并按需终止测试。
-
-        触发条件（三者同时满足）：
-            1. 曾经有页面连接过（排除纯接口启动测试的场景）；
-            2. 当前没有任何连接；
-            3. 无连接状态已持续超过 DISCONNECT_GRACE 秒（兼容页面刷新）。
-
-        说明：
-            触发后重置 _had_connection，避免测试停止后重复触发，
-            直到下一个页面重新连接才会再次启用该保护。
-        """
-        if not self._had_connection or self._connections:
-            return
-        if self._no_connection_since is None:
-            self._no_connection_since = now
-            return
-        if now - self._no_connection_since < DISCONNECT_GRACE:
-            return
-        session = self._session_provider() if self._session_provider else None
-        self._had_connection = False
-        self._no_connection_since = None
-        if session is None or not getattr(session, "running", False):
-            return
-        logger.warning("websocket", "前端全部断开且超过宽限期，终止测试", {
-            "grace": DISCONNECT_GRACE,
-        })
-        await session.stop(state_mod.BROWSER_DISCONNECTED)
 
     async def close_all(self) -> None:
         """关闭全部连接。"""

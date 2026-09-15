@@ -8,8 +8,15 @@ RADIUS Server 管理接口模块。
     PUT    /api/servers/{name}        修改
     DELETE /api/servers/{name}        删除
     POST   /api/servers/{name}/test   连通性测试（探测账号）
-    POST   /api/servers/{name}/auth-test        Radius 用户认证测试（单个账号）
-    POST   /api/servers/{name}/batch-auth-test  Radius 用户认证测试（批量账号）
+    POST   /api/servers/{name}/auth-test        Radius 用户认证测试（单个账号，保持在线）
+    POST   /api/servers/{name}/batch-auth-test  Radius 用户认证测试（批量账号，均保持在线）
+    POST   /api/servers/user-tests/stop         停止全部账号认证测试（发送 Accounting-Stop）
+
+认证测试行为（20260915-V1 起）：
+    auth-test / batch-auth-test 走「会话化」链路（见 src/web/user_test.py）：
+    认证成功并计费上线后保持用户在线（后台按计费间隔发送 Interim-Update），
+    直到调用 /user-tests/stop、或前端断开（见 src/web/ws.py）时才发送 Accounting-Stop。
+    账号认证测试与性能测试互斥：任一方运行中发起另一方将返回 400。
 
 认证测试请求体（auth-test / batch-auth-test）与性能测试请求体（POST /api/tasks）
 均可带可选字段 dot1x，用于指定 Dot1X 接入与常用 RADIUS 参数；不传时沿用硬编码属性
@@ -54,6 +61,7 @@ from ..logging import logger
 from ..radius.client import RadiusClient
 from ..testing import single as single_mod
 from . import runtime
+from . import user_test
 
 router = APIRouter(prefix="/api/servers", tags=["servers"])
 
@@ -312,10 +320,14 @@ async def test_server(name: str):
 @router.post("/{name}/auth-test")
 async def auth_test(name: str, payload: Dict[str, Any]):
     """
-    使用指定账号与协议，对该 Server 执行一次真实认证测试。
+    使用指定账号与协议，对该 Server 执行一次真实认证测试（需求3：测试后保持在线）。
 
     请求体：{"username": str, "password": str, "protocol": str(可选)}
-    返回：与 test 一致的结果字典。
+    返回：结果字典（含 task_id / session_id / online，供前端停止测试）。
+
+    说明：
+        认证并计费上线成功后保持在线，直到用户点击「停止测试」或前端断开；
+        与性能测试互斥（性能测试运行中时返回 400）。
     """
     target = _find_server(name)
     if target is None:
@@ -329,17 +341,24 @@ async def auth_test(name: str, payload: Dict[str, Any]):
     logger.debug("api", "开始 Radius 用户认证测试", {
         "name": name, "username": username, "protocol": protocol,
     })
-    result = await _probe(target, username, password, protocol, dot1x=dot1x)
-    logger.info("api", "Radius 用户认证测试完成", {
-        "name": name, "username": username,
-        "result": result["radius_result"], "error": result["error"],
-    })
+    try:
+        result = await user_test.start_user_test(
+            name, username, password, protocol, dot1x)
+    except user_test.UserTestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     return result
 
 
 @router.post("/{name}/batch-auth-test")
 async def batch_auth_test(name: str, payload: Dict[str, Any]):
-    """批量对多个用户执行认证测试，内部复用单用户测试逻辑（_probe）。"""
+    """
+    批量对多个用户执行认证测试（需求3：每个用户测试后保持在线）。
+
+    说明：
+        内部复用单用户会话化测试逻辑（user_test.start_user_test），
+        每个成功上线的用户都会保持在线，可在前端统一「停止测试」；
+        与性能测试互斥。
+    """
     target = _find_server(name)
     if target is None:
         raise HTTPException(status_code=404, detail="Server 不存在")
@@ -348,6 +367,12 @@ async def batch_auth_test(name: str, payload: Dict[str, Any]):
         raise HTTPException(status_code=400, detail="usernames 不能为空")
     protocol = str(payload.get("protocol") or target.get("protocol") or "pap")
     dot1x = payload.get("dot1x")
+
+    # 互斥预检查：性能测试运行中直接拒绝，避免部分用户已上线后才报错
+    try:
+        user_test.ensure_no_perf_test()
+    except user_test.UserTestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     # 读取用户密码（用户列表接口本就返回明文密码）
     passwords = {}
@@ -365,7 +390,8 @@ async def batch_auth_test(name: str, payload: Dict[str, Any]):
             continue
         password = passwords.get(username, "")
         try:
-            result = await _probe(target, username, password, protocol, dot1x=dot1x)
+            result = await user_test.start_user_test(
+                name, username, password, protocol, dot1x)
             result["username"] = username
             results.append(result)
         except Exception as exc:
@@ -378,8 +404,16 @@ async def batch_auth_test(name: str, payload: Dict[str, Any]):
                 "radius_result": "失败",
                 "response_time_ms": 0.0,
                 "error": str(exc),
+                "online": False,
             })
     logger.info("api", "批量 Radius 用户认证测试完成", {
         "name": name, "count": len(results),
     })
     return {"success": True, "results": results}
+
+
+@router.post("/user-tests/stop")
+async def stop_user_tests():
+    """停止全部账号认证测试：发送 Accounting-Stop 并清理在线会话（需求5）。"""
+    stopped = await user_test.stop_user_tests()
+    return {"success": True, "stopped": stopped}

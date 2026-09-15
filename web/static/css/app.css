@@ -1877,3 +1877,32 @@ code,
   top: 0;
   z-index: 2;
 }
+
+/* 账号认证测试（保持在线）状态条（需求3/5） */
+.app-usertest-banner {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-6);
+  transform: translateX(-50%);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: min(720px, 92vw);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-warning-border);
+  border-left: 3px solid var(--color-warning);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.app-usertest-banner[hidden] {
+  display: none !important;
+}
+
+.app-usertest-banner-text {
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.5;
+}

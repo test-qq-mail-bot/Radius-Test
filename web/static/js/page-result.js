@@ -197,8 +197,9 @@
         // 已取消「授权属性」分组展示：所有属性统一在下方「报文内容解析」中按原始报文呈现，
         // 说明列由后端按属性编号/厂商给出中文释义，避免分组视图与原始报文对不上、不好排错。
 
-        // 报文内容模块：每个报文单独成块，属性统一在「报文内容解析」表里呈现，
-        // 不再单独划分授权分组（隧道/VLAN、QoS、安全组、会话控制等）。
+        // 报文内容模块：按类型分组直出（需求2/4）。
+        // 落库时已按 packet_type 合并为「只留最新一条」，
+        // 因此这里不再做折叠摘要，认证 / Start / Interim / Stop 四组各自展开请求 + 响应。
         var packets = detail.packets || [];
         if (packets.length === 0) {
           var empty = document.createElement('div');
@@ -206,45 +207,44 @@
           empty.textContent = '本次测试未保存 RADIUS 报文（保存报文配置已关闭）';
           host.appendChild(empty);
         }
-        var packetSeq = {};
-        packets.forEach(function (packet) {
-          var rawKey = String(packet.packet_type || 'packet').replace(/[^A-Za-z0-9_-]/g, '_');
-          packetSeq[rawKey] = (packetSeq[rawKey] || 0) + 1;
-          var key = rawKey + '-' + packetSeq[rawKey];
-          var body = buildModule(key, packet.packet_type || '报文');
 
+        // 把 packet_type 归并到「聚合分组」标签：
+        //   Access-Request / Access-Accept -> 认证报文 (Access)
+        //   Accounting-Start / Interim / Stop -> 各自的 Accounting-* 名称
+        function packetGroupLabel(type) {
+          var t = String(type || '');
+          if (t.indexOf('Access-') >= 0) {
+            return '认证报文 (Access)';
+          }
+          return t.replace(/^request-/, '').replace(/^response-/, '');
+        }
+
+        // 渲染单条报文的属性解析表（属性为空时给出明确说明，避免误判为解析失败）
+        function renderPacketTable(body, packet) {
           var packetAttributes = packet.attributes || [];
           if (packetAttributes.length === 0) {
-            // 服务端确实没有下发任何属性时给出明确说明，避免误判为解析失败
             var emptyNote = document.createElement('div');
             emptyNote.className = 'app-detail-note';
-            emptyNote.id = 'app-result-detail-packet-empty-' + key;
-            emptyNote.textContent = '该报文本体未携带任何属性（原始报文仅 ' + (packet.raw_packet ? packet.raw_packet.length / 2 : 20) + ' 字节）。';
+            emptyNote.textContent = '该报文本体未携带任何属性（原始报文仅 '
+              + (packet.raw_packet ? packet.raw_packet.length / 2 : 20) + ' 字节）。';
             body.appendChild(emptyNote);
             return;
           }
-
           var attrWrap = document.createElement('div');
           attrWrap.className = 'app-table-wrap';
-          attrWrap.id = 'app-result-detail-packet-wrap-' + key;
           var attrTable = document.createElement('table');
           attrTable.className = 'app-table';
-          attrTable.id = 'app-result-detail-packet-' + key;
           var thead = document.createElement('thead');
           var headRow = document.createElement('tr');
-          headRow.id = attrTable.id + '-head-row';
           ['Radius模板', 'Name', 'Name_ZH', 'Type', 'Value', '说明'].forEach(function (text) {
             var th = document.createElement('th');
-            th.id = attrTable.id + '-th-' + text;
             th.textContent = text;
             headRow.appendChild(th);
           });
           thead.appendChild(headRow);
           var tbody = document.createElement('tbody');
-          tbody.id = attrTable.id + '-body';
-          packetAttributes.forEach(function (attribute, rowIndex) {
+          packetAttributes.forEach(function (attribute) {
             var tr = document.createElement('tr');
-            tr.id = attrTable.id + '-row-' + rowIndex;
             [
               attribute.radius_template,
               attribute.name,
@@ -252,9 +252,8 @@
               attribute.type,
               attribute.value,
               attribute.description || '-'
-            ].forEach(function (value, cellIndex) {
+            ].forEach(function (value) {
               var td = document.createElement('td');
-              td.id = tr.id + '-cell-' + cellIndex;
               td.textContent = value === undefined || value === null ? '' : String(value);
               tr.appendChild(td);
             });
@@ -264,6 +263,52 @@
           attrTable.appendChild(tbody);
           attrWrap.appendChild(attrTable);
           body.appendChild(attrWrap);
+        }
+
+        // 单条报文：请求/响应 用一行小标题区分
+        function renderOnePacket(parentBody, packet) {
+          var dir = String(packet.packet_type || '').indexOf('response-') >= 0 ? '响应' : '请求';
+          var sub = document.createElement('div');
+          sub.className = 'app-detail-subtitle';
+          sub.textContent = dir + '报文'
+            + (packet.packet_time ? '（' + packet.packet_time + '）' : '');
+          parentBody.appendChild(sub);
+          renderPacketTable(parentBody, packet);
+        }
+
+        // 按聚合分组归类
+        var groups = {};
+        packets.forEach(function (packet) {
+          var label = packetGroupLabel(packet.packet_type);
+          (groups[label] = groups[label] || []).push(packet);
+        });
+
+        function renderGroup(label, list) {
+          if (!list || !list.length) {
+            return;
+          }
+          var moduleKey = 'pkt-' + label.replace(/[^A-Za-z0-9_-]/g, '_');
+          var body = buildModule(moduleKey, label);
+          // 需求4：不做折叠摘要，请求在前、响应在后直接展开。
+          list.forEach(function (packet) {
+            renderOnePacket(body, packet);
+          });
+        }
+
+        // 固定展示顺序：认证 -> Start -> Interim -> Stop，其余类型按出现顺序补在后面
+        var groupOrder = ['认证报文 (Access)', 'Accounting-Start',
+          'Accounting-Interim', 'Accounting-Stop'];
+        var seen = {};
+        groupOrder.forEach(function (label) {
+          if (groups[label]) {
+            renderGroup(label, groups[label]);
+            seen[label] = true;
+          }
+        });
+        Object.keys(groups).forEach(function (label) {
+          if (!seen[label]) {
+            renderGroup(label, groups[label]);
+          }
         });
 
         global.RtUI.modal('测试详情 - ' + detail.username, [], [], host);

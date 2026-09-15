@@ -16,7 +16,6 @@
 from ..common import time_util, uuid_util
 from ..database import dao
 from ..logging import logger
-from ..parser import packet_parser
 from . import packets as packets_mod
 from . import state as state_mod
 
@@ -66,10 +65,7 @@ def persist_single_test(server: dict, username: str, protocol: str, result):
     })
     request_packet = result.request_packet
     response_packet = result.response_packet
-    if request_packet is not None:
-        packet_parser.enrich(request_packet)
-    if response_packet is not None:
-        packet_parser.enrich(response_packet)
+    # 属性模板匹配由落库层（testing.packets）统一补齐，此处不再重复处理
     packets_mod.save_packets(task_id, username, server_name,
                              request_packet, response_packet)
     logger.debug("testing", "单次测试结果已落库", {
