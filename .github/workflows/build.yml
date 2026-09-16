@@ -107,8 +107,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: 安装打包依赖
-        # 只装 PyInstaller 本体：requirements-build.txt 里的 pywin32-ctypes 等仅适用于 Windows
-        run: pip install "pyinstaller==6.22.2"
+        # 与本地打包共用同一份依赖清单，避免 CI 与本地版本脱节。
+        # 其中的 Windows 专属包（pywin32-ctypes）已用 PEP 508 环境标记标注，
+        # Linux runner 会自动跳过。
+        run: pip install -r requirements-build.txt
 
       - name: 打包
         # 强制用 bash + UTF-8：Windows 默认 PowerShell 控制台非 UTF-8，
@@ -145,6 +147,18 @@ jobs:
             cp dist/Radius-Test "out/Radius-Test-${VERSION}-linux-x64"
             chmod +x "out/Radius-Test-${VERSION}-linux-x64"
           fi
+          # 为每个产物生成 SHA256 校验文件（sha256sum 格式：<摘要>  <文件名>），
+          # 下载后同目录执行 `sha256sum -c <产物名>.sha256` 即可校验。
+          python -c "
+          import hashlib, pathlib
+          for f in sorted(pathlib.Path('out').iterdir()):
+              if not f.is_file() or f.name.endswith('.sha256'):
+                  continue
+              digest = hashlib.sha256(f.read_bytes()).hexdigest()
+              (f.parent / (f.name + '.sha256')).write_text(
+                  '%s  %s\n' % (digest, f.name), encoding='utf-8')
+              print(digest, f.name)
+          "
           ls -l out
 
       - name: 上传构建产物
@@ -183,11 +197,18 @@ jobs:
             - Linux：Radius-Test-${{ needs.prepare.outputs.version }}-linux-x64
 
             版本号取自 src/version.py 的 SOFTWARE_VERSION。
+
+            校验下载文件（与产物放在同一目录）：
+            - Linux / macOS：`sha256sum -c Radius-Test-<版本>-linux-x64.sha256`
+            - Windows（PowerShell）：`Get-FileHash .\Radius-Test-<版本>-windows-x64.exe -Algorithm SHA256`
+              将输出与 .sha256 文件内的摘要比对
           draft: false
           prerelease: false
-          # 仅发布两个预期产物，避免 merge-multiple 合并时残留/重名文件被误纳入。
+          # 仅发布预期产物（各平台二进制 + 对应校验文件），避免 merge-multiple 合并时残留/重名文件被误纳入。
           files: |
             artifacts/Radius-Test-${{ needs.prepare.outputs.version }}-windows-x64.exe
+            artifacts/Radius-Test-${{ needs.prepare.outputs.version }}-windows-x64.exe.sha256
             artifacts/Radius-Test-${{ needs.prepare.outputs.version }}-linux-x64
+            artifacts/Radius-Test-${{ needs.prepare.outputs.version }}-linux-x64.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

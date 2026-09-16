@@ -1,9 +1,13 @@
-# Radius-Test 打包依赖（仅构建 Windows EXE 时需要，程序运行时不需要）
+# Radius-Test 打包依赖（仅构建可执行文件时需要，程序运行时不需要）
+#
+# Windows 与 Linux 构建共用本文件；Windows 专属的包用 PEP 508 环境标记标注，
+# 例如 pywin32-ctypes 只在 win32 平台安装（在 Linux 上安装会失败）。
+# CI（.github/workflows/build.yml）直接执行 pip install -r requirements-build.txt。
 
 altgraph==0.17.5
 packaging==26.3
 pefile==2024.8.26
 pyinstaller==6.22.2
 pyinstaller-hooks-contrib==2026.7
-pywin32-ctypes==0.2.3
+pywin32-ctypes==0.2.3; sys_platform == "win32"
 setuptools==84.0.0
