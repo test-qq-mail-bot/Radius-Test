@@ -106,16 +106,18 @@
     accessOptions: function () {
       return [['wired', '有线'], ['wireless', '无线']];
     },
-    /* Service-Type(6) 选项：[值, 显示文本]；空值表示由后端随机生成合法值。 */
+    /* Service-Type(6) 选项：[值, 显示文本]；空值表示使用默认值 Framed(2)。
+       注意：Administrative(6) 会被部分服务端静默丢弃（实测 AgileController 完全不回包，
+       客户端表现为认证无响应），因此默认值取场景标准的 Framed(2)，不做随机。 */
     serviceOptions: function () {
       return [
-        ['', '随机生成'],
+        ['', '默认 Framed (2)'],
         ['1', 'Login (1)'],
         ['2', 'Framed (2)'],
         ['3', 'Callback-Login (3)'],
         ['4', 'Callback-Framed (4)'],
         ['5', 'Outbound (5)'],
-        ['6', 'Administrative (6)'],
+        ['6', 'Administrative (6) - 部分服务端不响应'],
         ['7', 'NAS-Prompt (7)'],
         ['8', 'Authenticate-Only (8)'],
         ['9', 'Callback-NAS-Prompt (9)'],
@@ -233,7 +235,7 @@
       rowC.appendChild(field('NAS-Identifier', fields.nasIdentifier,
         '属性 32；留空则默认生成合法值'));
       if (excludes.indexOf('serviceType') < 0) {
-        rowC.appendChild(field('Service-Type', fields.serviceType, '属性 6；留空则默认生成合法值'));
+        rowC.appendChild(field('Service-Type', fields.serviceType, '属性 6；留空默认 Framed(2)'));
       }
       if (excludes.indexOf('framedIp') < 0) {
         rowC.appendChild(field('Framed-IP-Address', fields.framedIp, '属性 8；留空则默认生成合法值'));

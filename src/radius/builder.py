@@ -101,9 +101,19 @@ def _random_connect_info() -> str:
     return "CONNECT %d" % random.randint(100000000, 999999999)
 
 
-def _random_service_type() -> int:
-    """生成合法随机 Service-Type(6) 取值（取 SERVICE_TYPES 内 RFC 2865 定义值 1~10）。"""
-    return random.choice(sorted(SERVICE_TYPES.values()))
+def _default_service_type() -> int:
+    """
+    返回 Service-Type(6) 的默认取值：Framed(2)。
+
+    **本属性不能随机**（2026-09-15 实测教训，对应 20260915-V3 的回归）：
+        Service-Type 会被服务端用于业务决策，取值有强语义约束。
+        实测 AgileController（192.168.12.101）在 Access-Request 携带
+        `Service-Type=6`(Administrative) 时**静默丢弃报文**（客户端表现为
+        3 次重试全超时、认证无响应），而 1/2/3/4/5/7/8/9/10 均正常应答。
+        真实 802.1X NAS 发送的也是固定值（常见 Framed(2)、Authenticate-Only(8)），
+        因此这里取最常见的 Framed(2) 作为默认值，用户仍可在面板上自定义。
+    """
+    return SERVICE_TYPES["framed"]
 
 
 def _random_framed_ip() -> str:
@@ -130,17 +140,21 @@ def resolve_device_fields(dot1x: Optional[dict] = None) -> dict:
     设备级字段一次测试只生成一个取值，全部被测用户共用
     （同一台 NAS 的标识与服务类型应当保持一致）。
 
+    例外：`Service-Type(6)` 默认为**固定值 Framed(2)**，不做随机 ——
+    该属性参与服务端业务决策，随机取值会被部分服务端静默丢弃，
+    详见 `_default_service_type()`。
+
     参数：
         dot1x: 前端传入的 Dot1X 配置，可为 None
 
     返回：
-        新的 dict（不修改入参）；三个字段留空时写入默认随机合法值。
+        新的 dict（不修改入参）；三个字段留空时写入默认合法值。
     """
     dot1x = dict(dot1x or {})
     if not str(dot1x.get("nas_identifier") or "").strip():
         dot1x["nas_identifier"] = _random_nas_identifier()
     if not str(dot1x.get("service_type") or "").strip():
-        dot1x["service_type"] = _random_service_type()
+        dot1x["service_type"] = _default_service_type()
     if not str(dot1x.get("connect_info") or "").strip():
         dot1x["connect_info"] = _random_connect_info()
     return dot1x

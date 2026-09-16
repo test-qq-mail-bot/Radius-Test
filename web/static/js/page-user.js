@@ -644,9 +644,13 @@
             && event.target.closest('input, button, a, label')) {
             return;
           }
-          // 单选：点击行只选中该行；多选请使用行首复选框
-          selectedUsernames.clear();
-          selectedUsernames.add(row.username);
+          // 多选：点击行切换该行的选中态（累加），不影响其它已选行；
+          // 再次点击已选行即取消选择。表头复选框仍可全选/取消本页。
+          if (selectedUsernames.has(row.username)) {
+            selectedUsernames.delete(row.username);
+          } else {
+            selectedUsernames.add(row.username);
+          }
           updateBatchBar();
           table.reload();
         }
